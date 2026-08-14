@@ -1,0 +1,15 @@
+# Yarnhub local / linked project. Apply migrations to the **yarnhub**
+# Supabase project only — never OA DEV/PROD.
+
+project_id = "yarnhub"
+
+[api]
+enabled = true
+
+[db]
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "https://yarnhub.reveille.net.au"
+additional_redirect_urls = ["http://localhost:3000", "http://localhost:3000/auth/callback"]

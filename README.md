@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Yarnhub
 
-## Getting Started
+Multi-tenant SMS tools (blast, inbox, P2P, surveys, relays) at
+[yarnhub.reveille.net.au](https://yarnhub.reveille.net.au).
 
-First, run the development server:
+v1 sending is **BYO Mobile Message only**. Hosted credits / number pool are not in this phase.
+
+## Phase A (this branch)
+
+Sign up → organisation → save MM credentials → register a dedicated number → test SMS → inbound reply on a thread.
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required env:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yarnhub Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yarnhub anon/publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Webhook + credential writes only |
+| `SMS_CREDENTIALS_KEY` | AES key for MM passwords (64 hex chars, or any passphrase) |
+| `SMS_PROVIDER` | `mock` locally; `mobile_message` in production |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` locally; `https://yarnhub.reveille.net.au` in production |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Apply migrations to the **yarnhub** Supabase project (never OA):
 
-## Learn More
+```bash
+pnpm dlx supabase db push --linked
+# or paste supabase/migrations/20260814010000_phase_a_foundations.sql
+# in the yarnhub SQL editor
+```
 
-To learn more about Next.js, take a look at the following resources:
+Auth Site URL must be `https://yarnhub.reveille.net.au` (add `http://localhost:3000/**` to redirect URLs).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm test
+pnpm dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Mock inbound (no ngrok)
 
-## Deploy on Vercel
+1. Sign up and create an organisation.
+2. Settings → save any username/password (mock does not call MM).
+3. Register `+61400000001` (the mock sender) or any AU mobile.
+4. Send a test SMS.
+5. Open the thread and use **Append inbound reply**.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Real Mobile Message
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Create an API user in the MM dashboard; copy username + password.
+2. Buy a dedicated number in MM (there is no purchase API).
+3. Settings → save credentials (Yarnhub calls `listSenders` / balance).
+4. Register that number.
+5. Paste the displayed webhook URL as both inbound and status URL:
+
+`https://yarnhub.reveille.net.au/api/sms/webhook?org=<org_public_id>`
+
+6. Paste the MM webhook signing secret into Settings.
+7. Send a test SMS and reply from a phone.
+
+HMAC is verified per organisation. The inbound `to` number must belong to that org.
+
+```bash
+pnpm test   # engine + webhook isolation unit tests
+pnpm lint
+pnpm build
+```

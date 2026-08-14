@@ -106,18 +106,7 @@ export function countSegments(text: string): SegmentCount {
 export const MERGE_FIELD_WORST_CASE: Record<string, number> = {
   first_name: 15,
   last_name: 20,
-  occupation: 30,
-  employer_name: 40,
-  agreement_name: 50,
-  worksite_name: 35,
-  campaign_name: 40,
-  organiser_name: 25,
-  organiser_phone: 12,
-  staff_name: 25,
-  staff_email: 40,
-  staff_phone: 12,
-  staff_role: 25,
-  date: 17, // "15 September 2026"
+  org_name: 40,
 };
 
 const DEFAULT_WORST_CASE = 24;

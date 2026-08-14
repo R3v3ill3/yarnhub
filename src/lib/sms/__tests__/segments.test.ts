@@ -99,13 +99,13 @@ describe("merge-field worst-case expansion", () => {
   });
 
   it("tolerates spaced tokens", () => {
-    expect(expandMergeFieldsWorstCase("{{ date }}")).toBe(
-      "x".repeat(MERGE_FIELD_WORST_CASE.date)
+    expect(expandMergeFieldsWorstCase("{{ first_name }}")).toBe(
+      "x".repeat(MERGE_FIELD_WORST_CASE.first_name)
     );
   });
 
   it("worst-case count exceeds literal count for tokenised bodies", () => {
-    const body = "Hi {{first_name}}, {{campaign_name}} update. - Offshore Alliance";
+    const body = "Hi {{first_name}}, {{org_name}} update."
     expect(countSegmentsWorstCase(body).length).toBeGreaterThan(
       countSegments(body).length
     );

@@ -26,15 +26,31 @@ export function inboxUnsafePurposeError(
   return isInboxUnsafePurpose(purpose) ? INBOX_UNSAFE_SENDER_MESSAGE : null
 }
 
+type PurposeLookup = {
+  from: (table: "sms_numbers") => {
+    select: (columns: "purpose") => {
+      eq: (
+        column: "id",
+        value: string,
+      ) => {
+        maybeSingle: () => Promise<{
+          data: { purpose: string | null } | null
+          error: { message: string } | null
+        }>
+      }
+    }
+  }
+}
+
 /** Returns the shared 409 copy if this number is reserved for surveys/relays. */
 export async function inboxUnsafeSenderMessage(
-  db: { from: (table: string) => any },
-  numberId: number,
+  db: PurposeLookup,
+  numberId: string,
 ): Promise<string | null> {
   const { data, error } = await db
     .from('sms_numbers')
     .select('purpose')
-    .eq('number_id', numberId)
+    .eq('id', numberId)
     .maybeSingle()
   if (error) throw error
   return inboxUnsafePurposeError(data?.purpose as string | null)
