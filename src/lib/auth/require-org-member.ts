@@ -39,7 +39,7 @@ export async function requireOrgMember(): Promise<{
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error && error.code !== "PGRST116") throw error;
   const org = data?.organisations as Organisation | Organisation[] | null;
   const resolved = Array.isArray(org) ? org[0] : org;
   if (!data || !resolved) redirect("/onboarding");

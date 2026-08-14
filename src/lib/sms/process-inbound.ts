@@ -5,10 +5,22 @@ import {
   isStopEvent,
   routeInboundThread,
 } from "@/lib/sms/inbound";
-import type { SmsWebhookEvent } from "@/lib/sms/provider/types";
+import type {
+  MessageDeliveryStatus,
+  SmsWebhookEvent,
+} from "@/lib/sms/provider/types";
 import type { RoutingNumber } from "@/lib/sms/conversation-routing";
 
 const UNIQUE_VIOLATION = "23505";
+
+/** Terminal MM statuses that may promote a row still in `sent`. */
+export function terminalDeliveryStatus(
+  status: MessageDeliveryStatus,
+): "delivered" | "failed" | null {
+  if (status === "delivered") return "delivered";
+  if (status === "failed" || status === "cancelled") return "failed";
+  return null;
+}
 
 export async function processInboundWebhook(args: {
   admin: SupabaseClient;
@@ -24,13 +36,52 @@ export async function processInboundWebhook(args: {
   const { admin, orgId, event } = args;
 
   if (event.type === "status") {
-    if (event.providerMessageId) {
+    if (!event.providerMessageId) return { ok: true, status: 200 };
+
+    const { data: sendLog } = await admin
+      .from("sms_send_log")
+      .select("id")
+      .eq("organisation_id", orgId)
+      .eq("provider_message_id", event.providerMessageId)
+      .maybeSingle();
+
+    const { error: eventError } = await admin.from("sms_delivery_events").insert({
+      organisation_id: orgId,
+      send_log_id: sendLog?.id ?? null,
+      provider_message_id: event.providerMessageId,
+      status: event.status,
+      occurred_at: event.occurredAt,
+    });
+    if (eventError) {
+      console.error("sms_delivery_events insert failed", eventError);
+      return { ok: false, status: 500, error: eventError.message };
+    }
+
+    const nextStatus = terminalDeliveryStatus(event.status);
+    if (nextStatus) {
+      const occurredAt = event.occurredAt ?? new Date().toISOString();
+      const patch =
+        nextStatus === "delivered"
+          ? { status: "delivered" }
+          : { status: "failed", failed_at: occurredAt };
+
+      if (sendLog?.id) {
+        await admin
+          .from("sms_send_log")
+          .update(patch)
+          .eq("id", sendLog.id)
+          .eq("organisation_id", orgId)
+          .eq("status", "sent");
+      }
+
       await admin
         .from("sms_messages")
-        .update({ status: event.status })
+        .update({ status: nextStatus })
         .eq("organisation_id", orgId)
-        .eq("provider_message_id", event.providerMessageId);
+        .eq("provider_message_id", event.providerMessageId)
+        .eq("status", "sent");
     }
+
     return { ok: true, status: 200 };
   }
 

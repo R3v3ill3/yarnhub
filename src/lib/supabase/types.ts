@@ -79,3 +79,44 @@ export interface SmsMessage {
   status: string | null;
   created_at: string;
 }
+
+export type BlastStatus =
+  | "draft"
+  | "queued"
+  | "sending"
+  | "sent"
+  | "paused"
+  | "cancelled";
+
+export type BlastItemStatus =
+  | "queued"
+  | "sending"
+  | "sent"
+  | "blocked"
+  | "failed"
+  | "opted_out"
+  | "skipped";
+
+export interface ContactList {
+  id: string;
+  organisation_id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface SmsBlast {
+  id: string;
+  organisation_id: string;
+  name: string | null;
+  body: string;
+  sender_number_id: string;
+  timezone: string;
+  blackout_override: boolean;
+  blackout_override_reason: string | null;
+  scheduled_for: string | null;
+  status: BlastStatus;
+  created_by: string | null;
+  queued_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}

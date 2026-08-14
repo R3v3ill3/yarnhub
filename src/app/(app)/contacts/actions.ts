@@ -98,3 +98,37 @@ export async function importContactsCsv(formData: FormData): Promise<{
   revalidatePath("/contacts");
   return { imported, skipped };
 }
+
+export async function snapshotContactList(formData: FormData): Promise<{
+  error?: string;
+}> {
+  const { org, supabase } = await requireOrgMember();
+  const name = String(formData.get("list_name") ?? "").trim();
+  if (!name) return { error: "List name is required" };
+
+  const { data: contacts, error: contactError } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("organisation_id", org.id);
+  if (contactError) return { error: contactError.message };
+  if (!contacts?.length) return { error: "Add contacts before saving a list" };
+
+  const { data: list, error: listError } = await supabase
+    .from("contact_lists")
+    .insert({ organisation_id: org.id, name })
+    .select("id")
+    .single();
+  if (listError) return { error: listError.message };
+
+  const { error: memberError } = await supabase.from("contact_list_members").insert(
+    contacts.map((c) => ({
+      list_id: list.id,
+      contact_id: c.id,
+      organisation_id: org.id,
+    })),
+  );
+  if (memberError) return { error: memberError.message };
+  revalidatePath("/contacts");
+  revalidatePath("/blasts/new");
+  return {};
+}

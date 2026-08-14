@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const nav = [
   { href: "/inbox", label: "Inbox" },
+  { href: "/blasts", label: "Blasts" },
   { href: "/contacts", label: "Contacts" },
   { href: "/settings", label: "Settings" },
 ];
@@ -41,7 +42,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col">{children}</main>
     </div>
   );
 }

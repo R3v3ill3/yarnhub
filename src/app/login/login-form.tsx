@@ -13,7 +13,7 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/inbox";
+  const next = searchParams.get("next") || "/";
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 

@@ -2,6 +2,7 @@ import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { Badge } from "@/components/ui/alert";
 import { toDisplay } from "@/lib/phone/normalise-phone";
 import { ContactForms } from "./contact-forms";
+import { AppPage } from "@/components/app-page";
 
 export default async function ContactsPage() {
   const { supabase, org } = await requireOrgMember();
@@ -10,14 +11,29 @@ export default async function ContactsPage() {
     .select("id, first_name, last_name, phone_e164, sms_opt_out, created_at")
     .eq("organisation_id", org.id)
     .order("created_at", { ascending: false });
+  const { data: lists } = await supabase
+    .from("contact_lists")
+    .select("id, name, created_at")
+    .eq("organisation_id", org.id)
+    .order("created_at", { ascending: false });
 
   return (
-    <div className="space-y-6">
+    <AppPage>
+      <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
         <p className="text-muted-foreground">People you can message from {org.name}.</p>
       </div>
-      <ContactForms />
+      <ContactForms lists={lists ?? []} />
+      {lists?.length ? (
+        <ul className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+          {lists.map((list) => (
+            <li key={list.id} className="rounded-full border border-border px-3 py-1">
+              {list.name}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/40 text-left text-muted-foreground">
@@ -53,6 +69,7 @@ export default async function ContactsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </AppPage>
   );
 }

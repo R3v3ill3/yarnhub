@@ -8,12 +8,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { addContact, importContactsCsv } from "./actions";
+import { addContact, importContactsCsv, snapshotContactList } from "./actions";
 
-export function ContactForms() {
+export function ContactForms({
+  lists,
+}: {
+  lists: Array<{ id: string; name: string }>;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
+  const [listMessage, setListMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
 
   async function onAdd(formData: FormData) {
@@ -38,6 +43,19 @@ export function ContactForms() {
       return;
     }
     setCsvMessage(`Imported ${result.imported ?? 0}, skipped ${result.skipped ?? 0}.`);
+    router.refresh();
+  }
+
+  async function onList(formData: FormData) {
+    setPending("list");
+    setListMessage(null);
+    const result = await snapshotContactList(formData);
+    setPending(null);
+    if (result.error) {
+      setListMessage(result.error);
+      return;
+    }
+    setListMessage("List saved from current contacts.");
     router.refresh();
   }
 
@@ -88,6 +106,27 @@ export function ContactForms() {
             />
             <Button type="submit" variant="secondary" disabled={pending === "csv"}>
               {pending === "csv" ? "Importing…" : "Import CSV"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle>Save as a list</CardTitle>
+          <CardDescription>
+            Snapshot everyone currently in Contacts for blast targeting.
+            {lists.length ? ` Existing: ${lists.map((l) => l.name).join(", ")}.` : ""}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={onList} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            {listMessage ? <Alert className="sm:w-full">{listMessage}</Alert> : null}
+            <div className="space-y-2 sm:flex-1">
+              <Label htmlFor="list_name">List name</Label>
+              <Input id="list_name" name="list_name" required placeholder="August members" />
+            </div>
+            <Button type="submit" variant="outline" disabled={pending === "list"}>
+              {pending === "list" ? "Saving…" : "Save list"}
             </Button>
           </form>
         </CardContent>

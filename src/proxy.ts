@@ -39,7 +39,8 @@ export async function proxy(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/auth");
-  const isPublicApi = path.startsWith("/api/sms/webhook");
+  const isPublicApi =
+    path.startsWith("/api/sms/webhook") || path.startsWith("/api/cron/");
   const isPublicPage = path === "/";
 
   if (!hasUser && !isAuthRoute && !isPublicApi && !isPublicPage) {

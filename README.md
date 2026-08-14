@@ -5,9 +5,11 @@ Multi-tenant SMS tools (blast, inbox, P2P, surveys, relays) at
 
 v1 sending is **BYO Mobile Message only**. Hosted credits / number pool are not in this phase.
 
-## Phase A (this branch)
+## Phase B
 
-Sign up → organisation → save MM credentials → register a dedicated number → test SMS → inbound reply on a thread.
+Blasts (queue + 5-minute cron drain) and a three-pane inbox. Quiet-hours
+window is 09:00–20:00 in the organisation timezone unless a recorded
+blackout override is set. One-to-one inbox replies are never held.
 
 ## Local development
 
@@ -26,13 +28,13 @@ Required env:
 | `SMS_CREDENTIALS_KEY` | AES key for MM passwords (64 hex chars, or any passphrase) |
 | `SMS_PROVIDER` | `mock` locally; `mobile_message` in production |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` locally; `https://yarnhub.reveille.net.au` in production |
+| `CRON_SECRET` | Bearer token for `/api/cron/dispatch-sms-queue` |
 
 Apply migrations to the **yarnhub** Supabase project (never OA):
 
 ```bash
 pnpm dlx supabase db push --linked
-# or paste supabase/migrations/20260814010000_phase_a_foundations.sql
-# in the yarnhub SQL editor
+# Phase A + B files under supabase/migrations/ — yarnhub project only
 ```
 
 Auth Site URL must be `https://yarnhub.reveille.net.au` (add `http://localhost:3000/**` to redirect URLs).

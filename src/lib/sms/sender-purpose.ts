@@ -18,7 +18,7 @@ export function isInboxUnsafePurpose(
 }
 
 export const INBOX_UNSAFE_SENDER_MESSAGE =
-  'This number is reserved for surveys or relays — pick an organiser number so replies land in Inbox.'
+  "This number is reserved for surveys or relays — pick an inbox number so replies land in Inbox.";
 
 export function inboxUnsafePurposeError(
   purpose: string | null | undefined,

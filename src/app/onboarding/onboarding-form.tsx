@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,12 @@ export function OnboardingForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [orgName, setOrgName] = useState("");
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("yarnhub_org_name");
+    if (stored) setOrgName(stored);
+  }, []);
 
   async function onSubmit(formData: FormData) {
     setPending(true);
@@ -46,6 +52,8 @@ export function OnboardingForm() {
               name="orgName"
               required
               minLength={2}
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
             />
           </div>
           <Button type="submit" className="w-full" disabled={pending}>
