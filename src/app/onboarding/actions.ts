@@ -15,7 +15,7 @@ export async function createFirstOrganisation(name: string): Promise<{
   const { data, error } = await supabase.rpc("create_organisation", {
     p_name: trimmed,
   });
-  if (error) {
+  if (error && !/already a member/i.test(error.message)) {
     return { error: error.message };
   }
   revalidatePath("/", "layout");
