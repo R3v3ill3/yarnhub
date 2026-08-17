@@ -142,6 +142,46 @@ export async function attachNumber(formData: FormData): Promise<{ error?: string
   return {};
 }
 
+export async function updateNumberPurpose(formData: FormData): Promise<{ error?: string }> {
+  const { org, supabase } = await requireOrgMember();
+  const numberId = String(formData.get("numberId") ?? "");
+  const purpose = String(formData.get("purpose") ?? "");
+  if (!numberId) return { error: "Missing number" };
+  if (!["inbox", "survey", "relay", "spare"].includes(purpose)) {
+    return { error: "Invalid number purpose" };
+  }
+
+  const { data: current } = await supabase
+    .from("sms_numbers")
+    .select("id, purpose")
+    .eq("id", numberId)
+    .eq("organisation_id", org.id)
+    .maybeSingle();
+  if (!current) return { error: "Unknown number" };
+
+  if (current.purpose === "relay" && purpose !== "relay") {
+    await supabase
+      .from("sms_relays")
+      .update({ status: "ended", ended_at: new Date().toISOString() })
+      .eq("number_id", numberId)
+      .eq("organisation_id", org.id)
+      .in("status", ["active", "paused"]);
+  }
+
+  const { error } = await supabase
+    .from("sms_numbers")
+    .update({ purpose })
+    .eq("id", numberId)
+    .eq("organisation_id", org.id);
+  if (error) return { error: error.message };
+  revalidatePath("/settings");
+  revalidatePath("/p2p");
+  revalidatePath("/surveys");
+  revalidatePath("/relays");
+  revalidatePath("/blasts");
+  return {};
+}
+
 export async function sendTestSms(formData: FormData): Promise<{
   error?: string;
   conversationId?: string;

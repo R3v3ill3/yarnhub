@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
 const nav = [
   { href: "/inbox", label: "Inbox" },
   { href: "/blasts", label: "Blasts" },
+  { href: "/p2p", label: "P2P" },
+  { href: "/surveys", label: "Surveys" },
+  { href: "/relays", label: "Relays" },
   { href: "/contacts", label: "Contacts" },
   { href: "/settings", label: "Settings" },
 ];

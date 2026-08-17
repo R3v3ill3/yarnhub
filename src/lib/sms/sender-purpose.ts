@@ -75,30 +75,37 @@ export function surveySenderSortKey(s: {
 }): number {
   if (s.purpose === 'survey') return 0
   if (s.is_mine) return 1
-  if (s.purpose === 'organiser') return 2
+  if (s.purpose === 'inbox' || s.purpose === 'organiser') return 2
   if (s.purpose === 'spare') return 3
   return 4
 }
 
 export function surveySenderPurposeHint(purpose: string): string {
   if (purpose === 'survey') return ' (survey)'
+  if (purpose === 'inbox') return ' (inbox — replies stay in the survey while live)'
   if (purpose === 'organiser') return ' (organiser inbox)'
   if (purpose === 'spare') return ' (spare)'
   return ` (${purpose})`
 }
 
-/** Warn-only: surveys may send from organiser/spare numbers. */
+/** Warn-only: surveys may send from inbox/spare numbers. */
 export function surveySenderPurposeWarning(
   purpose: string | null | undefined,
 ): string | null {
   if (purpose === 'relay') {
-    return 'Relay numbers are reserved for live relays — pick a survey or organiser number so replies stay in the survey session.'
+    return 'Relay numbers are reserved for live relays — pick a survey or inbox number so replies stay in the survey session.'
   }
-  if (purpose === 'organiser') {
+  if (purpose === 'organiser' || purpose === 'inbox') {
     return 'Replies to this inbox number are treated as survey answers while a session is live — they will not appear as ordinary inbox messages until the session ends.'
   }
   if (purpose === 'spare') {
     return 'This spare number is not reserved for surveys. Prefer a survey-purpose number so inbox routing stays clear.'
   }
   return null
+}
+
+export function filterRelaySenders<T extends { purpose: string }>(
+  senders: T[],
+): T[] {
+  return senders.filter((s) => s.purpose === 'relay')
 }

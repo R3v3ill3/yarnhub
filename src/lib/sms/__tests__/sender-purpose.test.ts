@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   filterInboxSafeSenders,
+  filterSurveySenders,
   inboxUnsafePurposeError,
   isInboxUnsafePurpose,
+  surveySenderPurposeWarning,
 } from "../sender-purpose";
 
 describe("sender-purpose belts", () => {
@@ -25,5 +27,14 @@ describe("sender-purpose belts", () => {
       "inbox",
       "spare",
     ]);
+  });
+
+  it("keeps inbox senders for surveys but excludes relay", () => {
+    expect(
+      filterSurveySenders([{ purpose: "inbox" }, { purpose: "relay" }, { purpose: "survey" }]).map(
+        (s) => s.purpose,
+      ),
+    ).toEqual(["inbox", "survey"]);
+    expect(surveySenderPurposeWarning("inbox")).toMatch(/survey answers/);
   });
 });

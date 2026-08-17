@@ -85,6 +85,10 @@ export async function POST(req: NextRequest) {
       ok: true,
       conversationId: result.conversationId ?? null,
       optedOut: result.optedOut ?? false,
+      unmatched: result.unmatched ?? false,
+      surveySessionId: result.surveySessionId ?? null,
+      relayId: result.relayId ?? null,
+      leg: result.leg ?? null,
     });
   } catch (err) {
     console.error("sms webhook error", err);

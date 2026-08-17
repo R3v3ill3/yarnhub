@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { attachNumber, saveProviderCredentials, sendTestSms } from "./actions";
+import { attachNumber, saveProviderCredentials, sendTestSms, updateNumberPurpose } from "./actions";
 import type { Organisation } from "@/lib/supabase/types";
 
 type NumberRow = {
@@ -56,6 +56,18 @@ export function SettingsForms(props: {
     setPending("number");
     setNumberError(null);
     const result = await attachNumber(formData);
+    setPending(null);
+    if (result.error) {
+      setNumberError(result.error);
+      return;
+    }
+    router.refresh();
+  }
+
+  async function onPurpose(formData: FormData) {
+    setPending("purpose");
+    setNumberError(null);
+    const result = await updateNumberPurpose(formData);
     setPending(null);
     if (result.error) {
       setNumberError(result.error);
@@ -166,8 +178,24 @@ export function SettingsForms(props: {
                   <span className="font-mono">{n.phone_e164}</span>
                   <span className="text-muted-foreground">
                     {n.label ? `${n.label} · ` : ""}
-                    {n.purpose} · {n.status}
+                    {n.status}
                   </span>
+                  <form action={onPurpose} className="flex items-center gap-2">
+                    <input type="hidden" name="numberId" value={n.id} />
+                    <select
+                      name="purpose"
+                      defaultValue={n.purpose}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                    >
+                      <option value="inbox">inbox</option>
+                      <option value="survey">survey</option>
+                      <option value="relay">relay</option>
+                      <option value="spare">spare</option>
+                    </select>
+                    <Button type="submit" size="sm" variant="outline" disabled={pending === "purpose"}>
+                      Save
+                    </Button>
+                  </form>
                 </li>
               ))}
             </ul>
@@ -188,7 +216,20 @@ export function SettingsForms(props: {
               <Label htmlFor="label">Label (optional)</Label>
               <Input id="label" name="label" placeholder="Inbox" />
             </div>
-            <input type="hidden" name="purpose" value="inbox" />
+            <div className="space-y-2">
+              <Label htmlFor="purpose">Purpose</Label>
+              <select
+                id="purpose"
+                name="purpose"
+                defaultValue="inbox"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="inbox">Inbox / P2P / blast</option>
+                <option value="survey">Survey</option>
+                <option value="relay">Relay</option>
+                <option value="spare">Spare</option>
+              </select>
+            </div>
             <div className="sm:col-span-2">
               <Button type="submit" disabled={pending === "number" || !props.connected}>
                 {pending === "number" ? "Saving…" : "Register number"}

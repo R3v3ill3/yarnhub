@@ -40,6 +40,43 @@ export function isStopEvent(event: SmsWebhookEvent): boolean {
   return false;
 }
 
+export type InboundLeg = "stop" | "survey" | "relay" | "inbox";
+
+/**
+ * Webhook precedence (Phase C): STOP always wins, then a live survey
+ * on the member phone, then a live relay on the to-number, else inbox.
+ */
+export function decideInboundLeg(args: {
+  isStop: boolean;
+  hasLiveSurvey: boolean;
+  hasLiveRelay: boolean;
+}): InboundLeg {
+  if (args.isStop) return "stop";
+  if (args.hasLiveSurvey) return "survey";
+  if (args.hasLiveRelay) return "relay";
+  return "inbox";
+}
+
+export const LIVE_SURVEY_SESSION_STATES = ["invited", "active"] as const;
+
+export function isLiveSurveySessionState(state: string | null | undefined): boolean {
+  return state === "invited" || state === "active";
+}
+
+/** True when two invited/active sessions share (organisation_id, phone_e164). */
+export function liveSurveySessionsConflict(
+  sessions: Array<{ organisation_id: string; phone_e164: string; state: string }>,
+): boolean {
+  const seen = new Set<string>();
+  for (const session of sessions) {
+    if (!isLiveSurveySessionState(session.state)) continue;
+    const key = `${session.organisation_id}:${session.phone_e164}`;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
+
 export function inboundPhoneAndTo(event: SmsWebhookEvent): {
   from: string;
   to: string;

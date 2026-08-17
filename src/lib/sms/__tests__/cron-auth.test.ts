@@ -14,4 +14,9 @@ describe("authorizeCronRequest", () => {
   it("accepts the configured bearer token", () => {
     expect(authorizeCronRequest("Bearer secret", "secret")).toBe("ok");
   });
+
+  it("treats an empty secret as misconfigured (no bypass)", () => {
+    expect(authorizeCronRequest("Bearer secret", "")).toBe("misconfigured");
+    expect(authorizeCronRequest("Bearer ", "")).toBe("misconfigured");
+  });
 });

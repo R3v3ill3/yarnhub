@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/dispatch-sms-queue",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/sms-survey-timers",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

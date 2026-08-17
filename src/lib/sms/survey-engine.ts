@@ -208,9 +208,10 @@ export function nextStep(
   current: SmsSurveyQuestionRow,
   parsedValue: string,
 ): NextStep {
-  const ordered = [...questions].sort(
-    (a, b) => a.sort_order - b.sort_order || a.question_id - b.question_id,
-  );
+  const ordered = [...questions].sort((a, b) => {
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+    return String(a.question_id).localeCompare(String(b.question_id));
+  });
 
   const branching = current.branching;
   if (branching && typeof branching === "object") {
@@ -219,8 +220,8 @@ export function nextStep(
       // Tolerate normalised-key authoring ("Yes" vs "yes").
       branching[normaliseAnswer(parsedValue)];
     if (target === "end") return { kind: "complete" };
-    if (typeof target === "number") {
-      const q = ordered.find((x) => x.question_id === target);
+    if (target != null) {
+      const q = ordered.find((x) => String(x.question_id) === String(target));
       if (q) return { kind: "question", question: q };
     }
   }

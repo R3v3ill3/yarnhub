@@ -19,11 +19,11 @@ export interface SmsSurveyScaleRange {
   max: number;
 }
 
-export type SmsSurveyBranching = Record<string, number | "end">;
+export type SmsSurveyBranching = Record<string, number | string | "end">;
 
 export interface SmsSurveyQuestionRow {
-  question_id: number;
-  survey_id: number;
+  question_id: number | string;
+  survey_id: number | string;
   sort_order: number;
   prompt: string;
   qtype: SmsSurveyQuestionType;

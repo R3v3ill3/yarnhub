@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authorizeCronRequest } from "@/lib/sms/cron-auth";
-import { dispatchDueBlasts } from "@/lib/sms/dispatch-blast-queue";
-import { dispatchDueP2pSends } from "@/lib/sms/dispatch-p2p";
+import { processSurveyTimers } from "@/lib/sms/survey-timers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,16 +16,12 @@ async function run(request: Request) {
   }
 
   try {
-    const admin = createAdminClient();
-    const [blasts, p2p] = await Promise.all([
-      dispatchDueBlasts(admin),
-      dispatchDueP2pSends(admin),
-    ]);
-    return NextResponse.json({ blasts, p2p });
+    const summary = await processSurveyTimers(createAdminClient());
+    return NextResponse.json(summary);
   } catch (err) {
-    console.error("dispatch-sms-queue failed", err);
+    console.error("sms-survey-timers failed", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Dispatch failed" },
+      { error: err instanceof Error ? err.message : "Survey timers failed" },
       { status: 500 },
     );
   }

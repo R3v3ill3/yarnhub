@@ -27,8 +27,13 @@ export const RELAY_PAUSED_REPLY =
  * direct request, so a single transactional response is compliant —
  * but the message is never forwarded).
  */
-export const RELAY_OPTED_OUT_REPLY =
-  "You have opted out of SMS from Offshore Alliance, so this message was not passed on. Reply START to opt back in.";
+export function relayOptedOutReply(orgName: string): string {
+  const name = orgName.trim() || "this organisation";
+  return `You have opted out of SMS from ${name}, so this message was not passed on. Reply START to opt back in.`;
+}
+
+/** Generic copy when the tenant name is not at hand (tests / fallback). */
+export const RELAY_OPTED_OUT_REPLY = relayOptedOutReply("this organisation");
 
 /**
  * One-time confirmation on the member's FIRST forwarded message on a
@@ -37,6 +42,9 @@ export const RELAY_OPTED_OUT_REPLY =
  */
 export const RELAY_FIRST_FORWARD_CONFIRMATION =
   "Your message has been passed on. Replies will come from this number.";
+
+/** Default member→target attribution. Tokens resolve from the contact. */
+export const DEFAULT_RELAY_PREFIX_TEMPLATE = "From {{first_name}} {{last_name}}:";
 
 /** Prefix context for a member we could not match to a worker. */
 export const GENERIC_MEMBER_CONTEXT: RelayMemberContext = {
@@ -58,7 +66,7 @@ function significantDigits(raw: string): string | null {
 }
 
 export interface RelayTargetLike {
-  target_id: number;
+  target_id: number | string;
   phone_e164: string;
   display_name: string | null;
   is_active: boolean;
@@ -121,8 +129,8 @@ export function resolveRelayDirection<T extends RelayTargetLike>(
 // ─── Bridging map (target reply → member) ───────────────────────────
 
 export interface BridgeCandidate {
-  relay_message_id: number;
-  member_worker_id: number | null;
+  relay_message_id: number | string;
+  member_worker_id: number | string | null;
   member_phone_e164: string | null;
   /** NULL = never actually forwarded (held/queued/pending). */
   forwarded_at: string | null;
@@ -148,7 +156,10 @@ export function chooseBridgeMember(
     const aT = Date.parse(a.forwarded_at as string) || 0;
     const bT = Date.parse(b.forwarded_at as string) || 0;
     if (aT !== bT) return bT - aT;
-    return b.relay_message_id - a.relay_message_id;
+    const aId = a.relay_message_id;
+    const bId = b.relay_message_id;
+    if (typeof aId === "number" && typeof bId === "number") return bId - aId;
+    return String(bId).localeCompare(String(aId));
   });
   return forwarded[0];
 }

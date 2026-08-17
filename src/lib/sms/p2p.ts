@@ -60,7 +60,7 @@ export function renderP2pBody(
 }
 
 export interface P2pBoardItemLike {
-  item_id: number;
+  item_id: number | string;
   status: string;
   worker_name: string;
   employer_name: string | null;
@@ -111,9 +111,9 @@ export function isP2pSendable(item: P2pBoardItemLike): boolean {
  */
 export function selectNextN<T extends P2pBoardItemLike>(
   items: T[],
-  selected: ReadonlySet<number>,
+  selected: ReadonlySet<T["item_id"]>,
   n: number,
-): Set<number> {
+): Set<T["item_id"]> {
   const next = new Set(selected);
   if (n <= 0) return next;
   for (const item of items) {
@@ -134,10 +134,10 @@ export function selectNextN<T extends P2pBoardItemLike>(
  */
 export function pruneP2pSelection<T extends P2pBoardItemLike>(
   items: T[],
-  selected: ReadonlySet<number>,
-): Set<number> {
+  selected: ReadonlySet<T["item_id"]>,
+): Set<T["item_id"]> {
   const byId = new Map(items.map((i) => [i.item_id, i]));
-  const next = new Set<number>();
+  const next = new Set<T["item_id"]>();
   for (const id of selected) {
     const item = byId.get(id);
     if (item && isP2pSendable(item)) next.add(id);
