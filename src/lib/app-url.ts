@@ -9,3 +9,8 @@ export function appUrl(): string {
 export function smsWebhookUrl(orgPublicId: string): string {
   return `${appUrl()}/api/sms/webhook?org=${encodeURIComponent(orgPublicId)}`;
 }
+
+/** Hosted pipe: one account-level URL; Yarnhub dispatches on payload `to`. */
+export function hostedSmsWebhookUrl(): string {
+  return `${appUrl()}/api/sms/webhook`;
+}

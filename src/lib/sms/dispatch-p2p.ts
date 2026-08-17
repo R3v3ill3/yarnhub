@@ -2,13 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeSendBefore, isWithinSendWindow } from "@/lib/sms/blackout";
 import { resolveBlastBody, screenBlastRecipient } from "@/lib/sms/blast-body";
 import { validateSmsBody } from "@/lib/sms/compliance";
-import {
-  getSmsProviderForOrg,
-  type SmsProvider,
-  type OutboundSms,
-  type SendResult,
-} from "@/lib/sms/provider";
-import { providerAccountLookup } from "@/lib/sms/provider-lookup";
+import type { SmsProvider, OutboundSms, SendResult } from "@/lib/sms/provider";
+import { gatedProviderFactory } from "@/lib/sms/send-guard";
 import { countSegments } from "@/lib/sms/segments";
 import { isInboxUnsafePurpose } from "@/lib/sms/sender-purpose";
 import { appendOutboundMessage, upsertOutboundThread } from "@/lib/sms/thread-write";
@@ -116,8 +111,7 @@ async function mirrorSuccessfulSends(
 export async function dispatchDueP2pSends(
   admin: SupabaseClient,
   now: Date = new Date(),
-  getProvider: (orgId: string) => Promise<SmsProvider> = (orgId) =>
-    getSmsProviderForOrg(orgId, providerAccountLookup(admin)),
+  getProvider: (orgId: string) => Promise<SmsProvider> = gatedProviderFactory(admin),
 ): Promise<P2pDispatchSummary> {
   const summary: P2pDispatchSummary = {
     sends_seen: 0,

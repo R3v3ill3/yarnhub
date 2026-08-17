@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toDisplay } from "@/lib/phone/normalise-phone";
-import { updateContactNotes } from "./actions";
+import { claimConversation, updateContactNotes } from "./actions";
 
 export function ContactPane(props: {
   conversationId: string;
@@ -16,6 +16,9 @@ export function ContactPane(props: {
   phone: string;
   optedOut: boolean;
   notes: string;
+  claimedBy: string | null;
+  claimedLabel: string | null;
+  currentUserId: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +54,31 @@ export function ContactPane(props: {
           </Badge>
         )}
       </div>
+      <form
+        action={async () => {
+          setPending(true);
+          setError(null);
+          const fd = new FormData();
+          fd.set("conversationId", props.conversationId);
+          fd.set("action", props.claimedBy === props.currentUserId ? "release" : "claim");
+          const result = await claimConversation(fd);
+          setPending(false);
+          if (result.error) {
+            setError(result.error);
+            return;
+          }
+          router.refresh();
+        }}
+      >
+        <p className="text-sm text-muted-foreground">
+          {props.claimedBy
+            ? `Claimed by ${props.claimedLabel || "a teammate"}`
+            : "Unclaimed"}
+        </p>
+        <Button type="submit" size="sm" variant="outline" className="mt-2" disabled={pending}>
+          {props.claimedBy === props.currentUserId ? "Release claim" : "Claim thread"}
+        </Button>
+      </form>
       {props.contactId ? (
         <form action={onSubmit} className="space-y-2">
           {error ? <Alert variant="destructive">{error}</Alert> : null}

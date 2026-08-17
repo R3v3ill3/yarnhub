@@ -17,8 +17,7 @@ import {
   processQueuedRelayForwards,
   type RelayForwardsSummary,
 } from "@/lib/sms/relay-runtime";
-import { getSmsProviderForOrg } from "@/lib/sms/provider";
-import { providerAccountLookup } from "@/lib/sms/provider-lookup";
+import { gatedProviderFactory } from "@/lib/sms/send-guard";
 
 const RUN_SEND_CAP = 200;
 const PROMPT_SPACING_MINUTES = 60;
@@ -54,8 +53,7 @@ export interface SurveyTimersSummary {
 export async function processSurveyTimers(
   admin: SupabaseClient,
   now: Date = new Date(),
-  getProvider: (orgId: string) => Promise<SmsProvider> = (orgId) =>
-    getSmsProviderForOrg(orgId, providerAccountLookup(admin)),
+  getProvider: (orgId: string) => Promise<SmsProvider> = gatedProviderFactory(admin),
 ): Promise<SurveyTimersSummary> {
   const nowIso = now.toISOString();
   const summary: SurveyTimersSummary = {

@@ -21,7 +21,10 @@ type NumberRow = {
 
 export function SettingsForms(props: {
   org: Organisation;
+  canAdmin: boolean;
+  sendingMode: "byo" | "hosted" | null;
   webhookUrl: string;
+  hostedWebhookUrl: string;
   connected: boolean;
   hasWebhookSecret: boolean;
   lastVerifiedAt: string | null;
@@ -152,9 +155,12 @@ export function SettingsForms(props: {
                 placeholder={props.hasWebhookSecret ? "Leave blank to keep the saved secret" : ""}
               />
             </div>
-            <Button type="submit" disabled={pending === "creds"}>
+            <Button type="submit" disabled={pending === "creds" || !props.canAdmin}>
               {pending === "creds" ? "Verifying…" : "Save and verify"}
             </Button>
+            {!props.canAdmin ? (
+              <p className="text-sm text-muted-foreground">Only owners and admins can change credentials.</p>
+            ) : null}
           </form>
         </CardContent>
       </Card>
@@ -192,7 +198,7 @@ export function SettingsForms(props: {
                       <option value="relay">relay</option>
                       <option value="spare">spare</option>
                     </select>
-                    <Button type="submit" size="sm" variant="outline" disabled={pending === "purpose"}>
+                    <Button type="submit" size="sm" variant="outline" disabled={pending === "purpose" || !props.canAdmin}>
                       Save
                     </Button>
                   </form>
@@ -231,7 +237,7 @@ export function SettingsForms(props: {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <Button type="submit" disabled={pending === "number" || !props.connected}>
+              <Button type="submit" disabled={pending === "number" || !props.connected || !props.canAdmin}>
                 {pending === "number" ? "Saving…" : "Register number"}
               </Button>
             </div>
@@ -245,12 +251,28 @@ export function SettingsForms(props: {
           <CardDescription>
             Paste this as the inbound and status URL in Mobile Message (one URL per
             account). The <code>org</code> query is how Yarnhub multiplexes BYO accounts.
+            Hosted numbers use the platform URL without <code>?org=</code>.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="break-all rounded-md border border-border bg-secondary/40 px-3 py-2 font-mono text-sm">
-            {props.webhookUrl}
-          </p>
+        <CardContent className="space-y-3">
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">BYO (this organisation)</p>
+            <p className="break-all rounded-md border border-border bg-secondary/40 px-3 py-2 font-mono text-sm">
+              {props.webhookUrl}
+            </p>
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Hosted platform</p>
+            <p className="break-all rounded-md border border-border bg-secondary/40 px-3 py-2 font-mono text-sm">
+              {props.hostedWebhookUrl}
+            </p>
+          </div>
+          {props.sendingMode === "hosted" ? (
+            <p className="text-sm text-muted-foreground">
+              This organisation is on hosted sending. Use the platform webhook URL on Yarnhub’s
+              Mobile Message account.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

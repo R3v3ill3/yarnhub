@@ -27,8 +27,9 @@ export function isMockSmsProvider(): boolean {
 }
 
 export interface ProviderAccountRow {
-  credentials_ciphertext: string;
+  credentials_ciphertext: string | null;
   webhook_secret_ciphertext: string | null;
+  mode?: "byo" | "hosted" | null;
 }
 
 export interface OrgSmsProviderLookup {
@@ -57,6 +58,9 @@ export async function getSmsProviderForOrg(
   const account = await lookup.getProviderAccount(orgId);
   if (!account) {
     throw new Error("No Mobile Message credentials saved for this organisation");
+  }
+  if (!account.credentials_ciphertext) {
+    throw new Error("Hosted Mobile Message is not configured on the platform yet");
   }
 
   const creds = decryptMobileMessageCredentials(account.credentials_ciphertext);

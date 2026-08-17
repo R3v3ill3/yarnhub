@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
+import { destructiveRoleError } from "@/lib/auth/roles";
 import { blackoutOverrideError } from "@/lib/sms/blast-body";
 import { computeSendBefore } from "@/lib/sms/blackout";
 import { validateSmsBody } from "@/lib/sms/compliance";
@@ -10,7 +11,9 @@ import { inboxUnsafePurposeError } from "@/lib/sms/sender-purpose";
 export async function queueBlast(
   formData: FormData,
 ): Promise<{ error?: string; warning?: string; blastId?: string }> {
-  const { org, user, supabase } = await requireOrgMember();
+  const { org, user, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const name = String(formData.get("name") ?? "").trim() || null;
   const body = String(formData.get("body") ?? "").trim();
   const numberId = String(formData.get("numberId") ?? "");

@@ -34,7 +34,7 @@ export async function requireOrgMember(): Promise<{
   const { data, error } = await supabase
     .from("organisation_members")
     .select(
-      "organisation_id, role, organisations ( id, name, slug, public_id, timezone, created_at )",
+      "organisation_id, role, organisations ( id, name, slug, public_id, timezone, created_at, sending_suspended, kyc_status, kyc_legal_name, kyc_abn )",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -60,7 +60,7 @@ export async function getOrgMembership() {
   const { data } = await supabase
     .from("organisation_members")
     .select(
-      "organisation_id, role, organisations ( id, name, slug, public_id, timezone, created_at )",
+      "organisation_id, role, organisations ( id, name, slug, public_id, timezone, created_at, sending_suspended, kyc_status, kyc_legal_name, kyc_abn )",
     )
     .eq("user_id", user.id)
     .maybeSingle();

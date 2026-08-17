@@ -1,8 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SmsProvider, SendResult } from "@/lib/sms/provider";
 import { isWithinSendWindow } from "@/lib/sms/blackout";
-import { getSmsProviderForOrg } from "@/lib/sms/provider";
-import { providerAccountLookup } from "@/lib/sms/provider-lookup";
+import { gatedProviderFactory } from "@/lib/sms/send-guard";
 import {
   GENERIC_MEMBER_CONTEXT,
   RELAY_FIRST_FORWARD_CONFIRMATION,
@@ -540,8 +539,7 @@ export interface RelayForwardsSummary {
 export async function processQueuedRelayForwards(
   db: Db,
   now: Date,
-  getProvider: (orgId: string) => Promise<SmsProvider> = (orgId) =>
-    getSmsProviderForOrg(orgId, providerAccountLookup(db)),
+  getProvider: (orgId: string) => Promise<SmsProvider> = gatedProviderFactory(db),
 ): Promise<RelayForwardsSummary> {
   const summary: RelayForwardsSummary = {
     relays_seen: 0,

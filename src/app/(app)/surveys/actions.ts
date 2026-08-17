@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
+import { destructiveRoleError } from "@/lib/auth/roles";
 import { blackoutOverrideError } from "@/lib/sms/blast-body";
 import { loadAudienceContacts, uniqueEligibleContacts } from "@/lib/sms/audience";
 import { getSmsProviderForOrg } from "@/lib/sms/provider";
 import { providerAccountLookup } from "@/lib/sms/provider-lookup";
+import { wrapSmsProviderForOrg } from "@/lib/sms/send-guard";
 import { loadSurveyLaunchConcurrency } from "@/lib/sms/survey-concurrency";
 import { dispatchSurveyInvitations } from "@/lib/sms/survey-invitation-dispatch";
 import { filterSurveySenders, surveySenderPurposeWarning } from "@/lib/sms/sender-purpose";
@@ -91,7 +93,9 @@ export async function createSurvey(
 export async function launchSurvey(
   formData: FormData,
 ): Promise<{ error?: string; warning?: string; overlap?: string; invited?: number }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const surveyId = String(formData.get("surveyId") ?? "");
   const numberId = String(formData.get("numberId") ?? "");
   const audience = String(formData.get("audience") ?? "all") === "list" ? "list" : "all";
@@ -207,7 +211,11 @@ export async function launchSurvey(
   const admin = createAdminClient();
   const { data: opened } = await admin.from("sms_surveys").select("*").eq("id", surveyId).single();
   if (!opened) return { error: "Survey could not be reloaded after launch" };
-  const provider = await getSmsProviderForOrg(org.id, providerAccountLookup(admin));
+  const provider = wrapSmsProviderForOrg(
+    admin,
+    org.id,
+    await getSmsProviderForOrg(org.id, providerAccountLookup(admin)),
+  );
   const summary = await dispatchSurveyInvitations(admin, provider, {
     survey: opened as SurveyRow,
     limit: 200,
@@ -225,7 +233,9 @@ export async function launchSurvey(
 }
 
 export async function pauseSurvey(formData: FormData): Promise<{ error?: string }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const surveyId = String(formData.get("surveyId") ?? "");
   const mode = String(formData.get("pause_mode") ?? "soft") === "hard" ? "hard" : "soft";
   const { error } = await supabase
@@ -245,7 +255,9 @@ export async function pauseSurvey(formData: FormData): Promise<{ error?: string 
 }
 
 export async function closeSurvey(formData: FormData): Promise<{ error?: string }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const surveyId = String(formData.get("surveyId") ?? "");
   const now = new Date().toISOString();
   const { error } = await supabase

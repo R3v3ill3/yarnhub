@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
+import { destructiveRoleError } from "@/lib/auth/roles";
 import { toE164 } from "@/lib/phone/normalise-phone";
 import { DEFAULT_RELAY_PREFIX_TEMPLATE } from "@/lib/sms/relay-engine";
 import { isLiveRelayStatus } from "@/lib/sms/relay-runtime";
@@ -31,7 +32,9 @@ async function loadOwnedRelay(
 export async function createRelay(
   formData: FormData,
 ): Promise<{ error?: string; relayId?: string }> {
-  const { org, user, supabase } = await requireOrgMember();
+  const { org, user, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const name = String(formData.get("name") ?? "").trim();
   const numberId = String(formData.get("numberId") ?? "");
   const prefix =
@@ -119,7 +122,9 @@ export async function createRelay(
 export async function updateRelay(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const relayId = String(formData.get("relayId") ?? "");
   const prefix =
     String(formData.get("prefix_template") ?? "").trim() || DEFAULT_RELAY_PREFIX_TEMPLATE;
@@ -146,7 +151,9 @@ export async function updateRelay(
 export async function setRelayStatus(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const relayId = String(formData.get("relayId") ?? "");
   const action = String(formData.get("action") ?? "");
   const loaded = await loadOwnedRelay(supabase, org.id, relayId);
@@ -205,7 +212,9 @@ export async function setRelayStatus(
 export async function addRelayTarget(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const relayId = String(formData.get("relayId") ?? "");
   const phone = toE164(String(formData.get("phone") ?? ""));
   const displayName = String(formData.get("display_name") ?? "").trim() || null;
@@ -242,7 +251,9 @@ export async function addRelayTarget(
 export async function setRelayTargetActive(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const relayId = String(formData.get("relayId") ?? "");
   const targetId = String(formData.get("targetId") ?? "");
   const isActive = String(formData.get("is_active") ?? "") === "true";

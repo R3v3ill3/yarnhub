@@ -11,7 +11,7 @@ import { Alert } from "@/components/ui/alert";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { createFirstOrganisation } from "@/app/onboarding/actions";
 
-export function SignupForm() {
+export function SignupForm({ inviteToken }: { inviteToken: string | null }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -27,12 +27,17 @@ export function SignupForm() {
       const orgName = String(formData.get("orgName") ?? "");
       const supabase = createBrowserSupabaseClient();
       const origin = window.location.origin;
-      sessionStorage.setItem("yarnhub_org_name", orgName);
+      if (inviteToken) {
+        sessionStorage.setItem("yarnhub_invite_token", inviteToken);
+      } else {
+        sessionStorage.setItem("yarnhub_org_name", orgName);
+      }
+      const nextPath = inviteToken ? `/join/${inviteToken}` : "/settings";
       const { data, error: signError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${origin}/auth/callback`,
+          emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
         },
       });
       if (signError) {
@@ -41,8 +46,15 @@ export function SignupForm() {
       }
       if (!data.session) {
         setMessage(
-          "Check your email to confirm the account, then sign in. You will create the organisation on first login.",
+          inviteToken
+            ? "Check your email to confirm the account, then sign in. You will join the organisation from the invite link."
+            : "Check your email to confirm the account, then sign in. You will create the organisation on first login.",
         );
+        return;
+      }
+      if (inviteToken) {
+        router.push(`/join/${inviteToken}`);
+        router.refresh();
         return;
       }
       const created = await createFirstOrganisation(orgName);
@@ -64,17 +76,23 @@ export function SignupForm() {
       <CardHeader>
         <CardTitle>Create an account</CardTitle>
         <CardDescription>
-          First login creates your organisation. Connect Mobile Message next.
+          {inviteToken
+            ? "Create an account with the invited email, then accept the join link."
+            : "First login creates your organisation. Connect Mobile Message next."}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={onSubmit} className="space-y-4">
           {error ? <Alert variant="destructive">{error}</Alert> : null}
           {message ? <Alert>{message}</Alert> : null}
-          <div className="space-y-2">
-            <Label htmlFor="orgName">Organisation name</Label>
-            <Input id="orgName" name="orgName" required minLength={2} placeholder="Northside Trades" />
-          </div>
+          {inviteToken ? (
+            <input type="hidden" name="invite" value={inviteToken} />
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="orgName">Organisation name</Label>
+              <Input id="orgName" name="orgName" required minLength={2} placeholder="Northside Trades" />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required autoComplete="email" />
@@ -95,7 +113,7 @@ export function SignupForm() {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="text-foreground underline-offset-4 hover:underline">
+            <Link href={inviteToken ? `/login?next=${encodeURIComponent(`/join/${inviteToken}`)}` : "/login"} className="text-foreground underline-offset-4 hover:underline">
               Sign in
             </Link>
           </p>

@@ -9,6 +9,10 @@ export interface Organisation {
   public_id: string;
   timezone: string;
   created_at: string;
+  sending_suspended?: boolean;
+  kyc_status?: "none" | "pending" | "approved" | "rejected";
+  kyc_legal_name?: string | null;
+  kyc_abn?: string | null;
 }
 
 export interface OrganisationMember {
@@ -35,8 +39,8 @@ export interface ProviderAccount {
   id: string;
   organisation_id: string;
   provider: string;
-  mode: "byo";
-  credentials_ciphertext: string;
+  mode: "byo" | "hosted";
+  credentials_ciphertext: string | null;
   webhook_secret_ciphertext: string | null;
   last_verified_at: string | null;
   created_at: string;

@@ -7,6 +7,7 @@ import { isMockSmsProvider, getSmsProviderForOrg } from "@/lib/sms/provider";
 import { processInboundWebhook } from "@/lib/sms/process-inbound";
 import { toE164 } from "@/lib/phone/normalise-phone";
 import { providerAccountLookup } from "@/lib/sms/provider-lookup";
+import { wrapSmsProviderForOrg } from "@/lib/sms/send-guard";
 import { appendOutboundMessage, upsertOutboundThread } from "@/lib/sms/thread-write";
 
 export async function simulateInboundReply(formData: FormData): Promise<{
@@ -92,7 +93,11 @@ export async function sendInboxReply(formData: FormData): Promise<{ error?: stri
   const admin = createAdminClient();
   let provider;
   try {
-    provider = await getSmsProviderForOrg(org.id, providerAccountLookup(admin));
+    provider = wrapSmsProviderForOrg(
+      admin,
+      org.id,
+      await getSmsProviderForOrg(org.id, providerAccountLookup(admin)),
+    );
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : "SMS provider is not configured",
@@ -146,5 +151,28 @@ export async function updateContactNotes(formData: FormData): Promise<{ error?: 
   if (error) return { error: error.message };
 
   revalidatePath(`/inbox/${conversationId}`);
+  return {};
+}
+
+export async function claimConversation(formData: FormData): Promise<{ error?: string }> {
+  const { org, user, supabase } = await requireOrgMember();
+  const conversationId = String(formData.get("conversationId") ?? "");
+  const action = String(formData.get("action") ?? "claim");
+  if (!conversationId) return { error: "Thread is missing" };
+
+  const patch =
+    action === "release"
+      ? { claimed_by: null, claimed_at: null }
+      : { claimed_by: user.id, claimed_at: new Date().toISOString() };
+
+  const { error } = await supabase
+    .from("sms_conversations")
+    .update(patch)
+    .eq("id", conversationId)
+    .eq("organisation_id", org.id);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/inbox/${conversationId}`);
+  revalidatePath("/inbox");
   return {};
 }

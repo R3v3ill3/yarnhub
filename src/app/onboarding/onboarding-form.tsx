@@ -39,7 +39,8 @@ export function OnboardingForm() {
       <CardHeader>
         <CardTitle>Name your organisation</CardTitle>
         <CardDescription>
-          This name is the legal sender identity on SMS (not the Yarnhub brand).
+          This name is the legal sender identity on SMS (not the Yarnhub brand). Have an
+          invite? Open the join link from your email instead of creating an organisation.
         </CardDescription>
       </CardHeader>
       <CardContent>

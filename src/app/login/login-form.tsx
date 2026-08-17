@@ -14,6 +14,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/";
+  const inviteFromNext = next.match(/^\/join\/([^/?#]+)/)?.[1];
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -67,7 +68,10 @@ export function LoginForm() {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             No account?{" "}
-            <Link href="/signup" className="text-foreground underline-offset-4 hover:underline">
+            <Link
+              href={inviteFromNext ? `/signup?invite=${encodeURIComponent(inviteFromNext)}` : "/signup"}
+              className="text-foreground underline-offset-4 hover:underline"
+            >
               Create one
             </Link>
           </p>

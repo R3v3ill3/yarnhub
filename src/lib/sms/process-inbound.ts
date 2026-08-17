@@ -11,11 +11,8 @@ import type {
   SmsWebhookEvent,
 } from "@/lib/sms/provider/types";
 import type { RoutingNumber } from "@/lib/sms/conversation-routing";
-import {
-  getSmsProviderForOrg,
-  type SmsProvider,
-} from "@/lib/sms/provider";
-import { providerAccountLookup } from "@/lib/sms/provider-lookup";
+import type { SmsProvider } from "@/lib/sms/provider";
+import { gatedProviderFactory } from "@/lib/sms/send-guard";
 import {
   findLiveSessionByPhone,
   loadOrgName,
@@ -59,9 +56,7 @@ export async function processInboundWebhook(args: {
   leg?: string;
 }> {
   const { admin, orgId, event } = args;
-  const getProvider =
-    args.getProvider ??
-    ((id: string) => getSmsProviderForOrg(id, providerAccountLookup(admin)));
+  const getProvider = args.getProvider ?? gatedProviderFactory(admin);
 
   if (event.type === "status") {
     if (!event.providerMessageId) return { ok: true, status: 200 };

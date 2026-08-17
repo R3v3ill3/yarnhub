@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
+import { isPlatformAdminEmail } from "@/lib/auth/roles";
 import { SignOutButton } from "./sign-out-button";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +13,14 @@ const nav = [
   { href: "/surveys", label: "Surveys" },
   { href: "/relays", label: "Relays" },
   { href: "/contacts", label: "Contacts" },
+  { href: "/reports", label: "Reports" },
+  { href: "/team", label: "Team" },
   { href: "/settings", label: "Settings" },
 ];
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { org, user } = await requireOrgMember();
+  const platform = isPlatformAdminEmail(user.email);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -26,7 +30,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Link href="/inbox" className="text-sm font-semibold tracking-tight">
               Yarnhub
             </Link>
-            <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+            <nav className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               {nav.map((item) => (
                 <Link
                   key={item.href}
@@ -36,6 +40,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                   {item.label}
                 </Link>
               ))}
+              {platform ? (
+                <Link href="/platform" className="hover:text-foreground">
+                  Platform
+                </Link>
+              ) : null}
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">

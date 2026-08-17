@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { writeAudit } from "@/lib/audit";
+import { destructiveRoleError } from "@/lib/auth/roles";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
-import { smsWebhookUrl } from "@/lib/app-url";
+import { hostedSmsWebhookUrl, smsWebhookUrl } from "@/lib/app-url";
 import {
   encryptMobileMessageCredentials,
   encryptSecret,
@@ -16,6 +18,7 @@ import {
 import { toE164 } from "@/lib/phone/normalise-phone";
 import { inboxUnsafePurposeError } from "@/lib/sms/sender-purpose";
 import { providerAccountLookup } from "@/lib/sms/provider-lookup";
+import { wrapSmsProviderForOrg } from "@/lib/sms/send-guard";
 import type { SenderId } from "@/lib/sms/provider/types";
 
 export async function saveProviderCredentials(formData: FormData): Promise<{
@@ -23,7 +26,9 @@ export async function saveProviderCredentials(formData: FormData): Promise<{
   balance?: number;
   senders?: SenderId[];
 }> {
-  const { org } = await requireOrgMember();
+  const { org, user, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const webhookSecret = String(formData.get("webhookSecret") ?? "").trim();
@@ -97,11 +102,19 @@ export async function saveProviderCredentials(formData: FormData): Promise<{
   }
 
   revalidatePath("/settings");
+  await writeAudit(admin, {
+    organisationId: org.id,
+    actorUserId: user.id,
+    action: "provider_credentials_saved",
+    payload: { mode: "byo" },
+  });
   return { senders, balance };
 }
 
 export async function attachNumber(formData: FormData): Promise<{ error?: string }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, user, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const raw = String(formData.get("phone") ?? "");
   const label = String(formData.get("label") ?? "").trim() || null;
   const purpose = String(formData.get("purpose") ?? "inbox");
@@ -139,11 +152,19 @@ export async function attachNumber(formData: FormData): Promise<{ error?: string
   }
   revalidatePath("/settings");
   revalidatePath("/inbox");
+  await writeAudit(createAdminClient(), {
+    organisationId: org.id,
+    actorUserId: user.id,
+    action: "sms_number_attached",
+    payload: { phone, purpose },
+  });
   return {};
 }
 
 export async function updateNumberPurpose(formData: FormData): Promise<{ error?: string }> {
-  const { org, supabase } = await requireOrgMember();
+  const { org, user, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
   const numberId = String(formData.get("numberId") ?? "");
   const purpose = String(formData.get("purpose") ?? "");
   if (!numberId) return { error: "Missing number" };
@@ -179,6 +200,12 @@ export async function updateNumberPurpose(formData: FormData): Promise<{ error?:
   revalidatePath("/surveys");
   revalidatePath("/relays");
   revalidatePath("/blasts");
+  await writeAudit(createAdminClient(), {
+    organisationId: org.id,
+    actorUserId: user.id,
+    action: "sms_number_purpose_updated",
+    payload: { numberId, from: current.purpose, to: purpose },
+  });
   return {};
 }
 
@@ -221,7 +248,11 @@ export async function sendTestSms(formData: FormData): Promise<{
   const admin = createAdminClient();
   let provider;
   try {
-    provider = await getSmsProviderForOrg(org.id, providerAccountLookup(admin));
+    provider = wrapSmsProviderForOrg(
+      admin,
+      org.id,
+      await getSmsProviderForOrg(org.id, providerAccountLookup(admin)),
+    );
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : "SMS provider is not configured",
@@ -317,12 +348,12 @@ export async function sendTestSms(formData: FormData): Promise<{
 }
 
 export async function loadSettingsPayload() {
-  const { org, supabase } = await requireOrgMember();
+  const { org, supabase, role } = await requireOrgMember();
   const admin = createAdminClient();
   const [{ data: account }, { data: numbers }] = await Promise.all([
     admin
       .from("provider_accounts")
-      .select("id, last_verified_at, webhook_secret_ciphertext")
+      .select("id, mode, last_verified_at, webhook_secret_ciphertext")
       .eq("organisation_id", org.id)
       .maybeSingle(),
     supabase
@@ -334,7 +365,10 @@ export async function loadSettingsPayload() {
 
   return {
     org,
+    canAdmin: !destructiveRoleError(role),
+    sendingMode: (account?.mode as "byo" | "hosted" | null) ?? null,
     webhookUrl: smsWebhookUrl(org.public_id),
+    hostedWebhookUrl: hostedSmsWebhookUrl(),
     connected: Boolean(account),
     hasWebhookSecret: Boolean(account?.webhook_secret_ciphertext),
     lastVerifiedAt: account?.last_verified_at ?? null,
