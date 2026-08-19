@@ -11,10 +11,10 @@ function Alert({
       role="alert"
       data-slot="alert"
       className={cn(
-        "relative w-full rounded-lg border px-4 py-3 text-sm",
+        "relative w-full rounded-md border-2 px-4 py-3 text-sm",
         variant === "destructive"
-          ? "border-destructive/50 text-destructive"
-          : "border-border text-foreground",
+          ? "border-destructive/40 bg-destructive/5 text-destructive"
+          : "border-border bg-muted text-foreground",
         className,
       )}
       {...props}
@@ -33,12 +33,12 @@ function Badge({
     <span
       data-slot="badge"
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
         variant === "default" &&
           "border-transparent bg-primary text-primary-foreground",
         variant === "secondary" &&
           "border-transparent bg-secondary text-secondary-foreground",
-        variant === "outline" && "text-foreground",
+        variant === "outline" && "border-border text-foreground",
         variant === "destructive" &&
           "border-transparent bg-destructive text-destructive-foreground",
         className,

@@ -1,33 +1,42 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const poppins = Poppins({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins",
 });
 
 export const metadata: Metadata = {
-  title: "Yarnhub",
-  description: "Multi-tenant SMS tools — blast, inbox, P2P, surveys, relays.",
+  title: {
+    default: "Yarnhub",
+    template: "%s · Yarnhub",
+  },
+  description:
+    "SMS organising tools for unions and campaigns — inbox, blasts, P2P, surveys, and relays.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#e81c1c",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`dark ${geistSans.variable} ${geistMono.variable} h-full`}
+      className={`${inter.variable} ${poppins.variable} ${inter.className} h-full`}
     >
-      <body className="min-h-full flex flex-col antialiased">
+      <body className="flex min-h-full flex-col antialiased">
         {children}
-        <Toaster theme="dark" richColors />
+        <Toaster theme="light" richColors />
       </body>
     </html>
   );

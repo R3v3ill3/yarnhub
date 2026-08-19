@@ -1,3 +1,4 @@
+import { AuthShell } from "@/components/marketing-shell";
 import { SignupForm } from "./signup-form";
 
 export default async function SignupPage({
@@ -7,8 +8,11 @@ export default async function SignupPage({
 }) {
   const { invite } = await searchParams;
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-16">
+    <AuthShell
+      title="Create an account"
+      description="First login creates your organisation. Connect Mobile Message next."
+    >
       <SignupForm inviteToken={invite?.trim() || null} />
-    </div>
+    </AuthShell>
   );
 }

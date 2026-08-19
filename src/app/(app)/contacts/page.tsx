@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/alert";
 import { toDisplay } from "@/lib/phone/normalise-phone";
 import { ContactForms } from "./contact-forms";
 import { AppPage } from "@/components/app-page";
+import { PageHeader } from "@/components/page-header";
 
 export default async function ContactsPage() {
   const { supabase, org } = await requireOrgMember();
@@ -20,10 +21,10 @@ export default async function ContactsPage() {
   return (
     <AppPage>
       <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
-        <p className="text-muted-foreground">People you can message from {org.name}.</p>
-      </div>
+      <PageHeader
+        title="Contacts"
+        description={`People you can message from ${org.name}.`}
+      />
       <ContactForms lists={lists ?? []} />
       {lists?.length ? (
         <ul className="flex flex-wrap gap-2 text-sm text-muted-foreground">
@@ -34,7 +35,7 @@ export default async function ContactsPage() {
           ))}
         </ul>
       ) : null}
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-lg border-2 border-border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/40 text-left text-muted-foreground">
             <tr>

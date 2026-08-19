@@ -39,7 +39,7 @@ export default async function InboxLayout({ children }: { children: ReactNode })
   });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col md:h-[calc(100dvh-3.5rem)] md:flex-row">
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-1 flex-col md:flex-row lg:h-dvh">
       <ThreadList threads={threads} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
     </div>

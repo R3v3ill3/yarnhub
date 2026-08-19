@@ -1,4 +1,5 @@
 import { AppPage } from "@/components/app-page";
+import { PageHeader } from "@/components/page-header";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { emailsForUserIds } from "@/lib/auth/user-emails";
 import { destructiveRoleError } from "@/lib/auth/roles";
@@ -52,12 +53,10 @@ export default async function TeamPage() {
   return (
     <AppPage>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Team</h1>
-          <p className="text-muted-foreground">
-            Invites, roles, canned replies, timezone, KYC, and hosted credits for {org.name}.
-          </p>
-        </div>
+        <PageHeader
+          title="Team"
+          description={`Invites, roles, canned replies, timezone, KYC, and hosted credits for ${org.name}.`}
+        />
         <TeamForms
           canAdmin={!destructiveRoleError(role)}
           timezone={org.timezone}

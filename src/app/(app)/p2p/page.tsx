@@ -1,5 +1,6 @@
 import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { AppPage } from "@/components/app-page";
+import { PageHeader } from "@/components/page-header";
 import { P2pBoard } from "./p2p-board";
 
 export default async function P2pPage() {
@@ -20,12 +21,10 @@ export default async function P2pPage() {
   return (
     <AppPage>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">P2P chat</h1>
-          <p className="text-muted-foreground">
-            Pick people, send a personalised opener, then continue 1:1 in Inbox.
-          </p>
-        </div>
+        <PageHeader
+          title="P2P chat"
+          description="Pick people, send a personalised opener, then continue 1:1 in Inbox."
+        />
         <P2pBoard orgName={org.name} numbers={numbers ?? []} contacts={contacts ?? []} />
       </div>
     </AppPage>

@@ -26,8 +26,11 @@ export function ThreadList({ threads }: { threads: InboxThread[] }) {
         inThread && "hidden md:flex",
       )}
     >
-      <div className="border-b border-border px-4 py-3">
-        <h1 className="text-sm font-semibold">Inbox</h1>
+      <div className="border-b border-border bg-sidebar px-4 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+          Yarnhub
+        </p>
+        <h1 className="font-display text-lg font-bold">Inbox</h1>
         <p className="text-xs text-muted-foreground">One thread per number and phone</p>
       </div>
       <ul className="min-h-0 flex-1 overflow-y-auto">
@@ -39,8 +42,10 @@ export function ThreadList({ threads }: { threads: InboxThread[] }) {
               <Link
                 href={href}
                 className={cn(
-                  "block px-4 py-3 hover:bg-accent/40",
-                  active && "bg-accent/50",
+                  "block border-l-4 px-4 py-3 hover:bg-accent",
+                  active
+                    ? "border-primary bg-accent"
+                    : "border-transparent",
                 )}
               >
                 <div className="flex items-start justify-between gap-2">

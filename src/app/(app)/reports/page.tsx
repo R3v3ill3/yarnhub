@@ -1,4 +1,5 @@
 import { AppPage } from "@/components/app-page";
+import { PageHeader } from "@/components/page-header";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -46,12 +47,10 @@ export default async function ReportsPage() {
   return (
     <AppPage>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground">
-            Blast delivery and survey funnel for {org.name}.
-          </p>
-        </div>
+        <PageHeader
+          title="Reports"
+          description={`Blast delivery and survey funnel for ${org.name}.`}
+        />
 
         <Card>
           <CardHeader>

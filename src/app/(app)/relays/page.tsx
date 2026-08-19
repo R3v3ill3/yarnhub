@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { AppPage } from "@/components/app-page";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { toDisplay } from "@/lib/phone/normalise-phone";
@@ -24,25 +25,22 @@ export default async function RelaysPage() {
   return (
     <AppPage>
       <div className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Relays</h1>
-            <p className="text-muted-foreground">
-              Members text a dedicated number; messages forward to a target with
-              attribution. Replies come back through the same number — no CLI spoofing.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/relays/new">New relay</Link>
-          </Button>
-        </div>
+        <PageHeader
+          title="Relays"
+          description="Members text a dedicated number; messages forward to a target with attribution. Replies come back through the same number — no CLI spoofing."
+          actions={
+            <Button asChild>
+              <Link href="/relays/new">New relay</Link>
+            </Button>
+          }
+        />
         {!relays?.length ? (
           <p className="text-sm text-muted-foreground">
             No relays yet. Register a number with purpose “relay” in Settings, then
             create one here.
           </p>
         ) : (
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul className="divide-y divide-border overflow-hidden rounded-lg border-2 border-border">
             {relays.map((relay) => {
               const number = numberById.get(relay.number_id);
               return (

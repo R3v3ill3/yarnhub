@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { AppPage } from "@/components/app-page";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
@@ -15,21 +16,19 @@ export default async function SurveysPage() {
   return (
     <AppPage>
       <div className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Surveys</h1>
-            <p className="text-muted-foreground">
-              Reply-native questions. One live session per phone in {org.name}.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/surveys/new">New survey</Link>
-          </Button>
-        </div>
+        <PageHeader
+          title="Surveys"
+          description={`Reply-native questions. One live session per phone in ${org.name}.`}
+          actions={
+            <Button asChild>
+              <Link href="/surveys/new">New survey</Link>
+            </Button>
+          }
+        />
         {!surveys?.length ? (
           <p className="text-sm text-muted-foreground">No surveys yet.</p>
         ) : (
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul className="divide-y divide-border overflow-hidden rounded-lg border-2 border-border">
             {surveys.map((survey) => (
               <li key={survey.id}>
                 <Link

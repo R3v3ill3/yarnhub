@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppPage } from "@/components/app-page";
+import { BrandLockup } from "@/components/brand";
+import { PageHeader } from "@/components/page-header";
 import { requireUser } from "@/lib/auth/require-org-member";
 import { isPlatformAdminEmail } from "@/lib/auth/roles";
 import { creditBalance } from "@/lib/sms/credits";
@@ -44,25 +45,19 @@ export default async function PlatformPage() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
-          <div className="flex items-center gap-4 text-sm">
-            <Link href="/inbox" className="font-semibold tracking-tight">
-              Yarnhub
-            </Link>
-            <span className="text-muted-foreground">Platform</span>
-          </div>
+      <header className="bg-primary text-white">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4">
+          <BrandLockup href="/inbox" inverted subtitle="Platform console" />
           <SignOutButton />
         </div>
       </header>
       <AppPage>
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Platform console</h1>
-            <p className="text-muted-foreground">
-              Hosted Mobile Message credentials, number pool, KYC, credits, and panic suspend.
-            </p>
-          </div>
+          <PageHeader
+            eyebrow="Platform"
+            title="Platform console"
+            description="Hosted Mobile Message credentials, number pool, KYC, credits, and panic suspend."
+          />
           <PlatformForms
             hasPlatformAccount={Boolean(platform)}
             orgs={withCredits}

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getOrgMembership, getSessionUser } from "@/lib/auth/require-org-member";
+import { AuthShell } from "@/components/marketing-shell";
 import { JoinForm } from "../join-form";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,11 @@ export default async function JoinPage({
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-16">
+    <AuthShell
+      title="Join your organisation"
+      description="This invite is tied to the email on your Yarnhub account."
+    >
       <JoinForm token={token} />
-    </div>
+    </AuthShell>
   );
 }

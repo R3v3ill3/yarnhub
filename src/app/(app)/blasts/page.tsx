@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { AppPage } from "@/components/app-page";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
@@ -15,21 +16,19 @@ export default async function BlastsPage() {
   return (
     <AppPage>
       <div className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Blasts</h1>
-            <p className="text-muted-foreground">
-              Queue a bulk SMS. Cron drains every 5 minutes during the send window.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/blasts/new">New blast</Link>
-          </Button>
-        </div>
+        <PageHeader
+          title="Blasts"
+          description="Queue a bulk SMS. Cron drains every 5 minutes during the send window."
+          actions={
+            <Button asChild>
+              <Link href="/blasts/new">New blast</Link>
+            </Button>
+          }
+        />
         {!blasts?.length ? (
           <p className="text-sm text-muted-foreground">No blasts yet.</p>
         ) : (
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul className="divide-y divide-border overflow-hidden rounded-lg border-2 border-border">
             {blasts.map((blast) => (
               <li key={blast.id}>
                 <Link
