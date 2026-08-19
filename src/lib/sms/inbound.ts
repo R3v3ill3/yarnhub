@@ -3,7 +3,7 @@
  * I/O lives in the route handler.
  */
 
-import { isStopKeyword } from "@/lib/sms/survey-engine";
+import { isStartKeyword, isStopKeyword } from "@/lib/sms/survey-engine";
 import {
   findNumberForInbound,
   resolveInboundConversation,
@@ -40,18 +40,26 @@ export function isStopEvent(event: SmsWebhookEvent): boolean {
   return false;
 }
 
-export type InboundLeg = "stop" | "survey" | "relay" | "inbox";
+export function isStartEvent(event: SmsWebhookEvent): boolean {
+  if (event.type !== "inbound") return false;
+  return isStartKeyword(event.body);
+}
+
+export type InboundLeg = "stop" | "start" | "survey" | "relay" | "inbox";
 
 /**
- * Webhook precedence (Phase C): STOP always wins, then a live survey
- * on the member phone, then a live relay on the to-number, else inbox.
+ * Webhook precedence: STOP always wins, then START (opt back in),
+ * then a live survey on the member phone, then a live relay on the
+ * to-number, else inbox.
  */
 export function decideInboundLeg(args: {
   isStop: boolean;
+  isStart?: boolean;
   hasLiveSurvey: boolean;
   hasLiveRelay: boolean;
 }): InboundLeg {
   if (args.isStop) return "stop";
+  if (args.isStart) return "start";
   if (args.hasLiveSurvey) return "survey";
   if (args.hasLiveRelay) return "relay";
   return "inbox";

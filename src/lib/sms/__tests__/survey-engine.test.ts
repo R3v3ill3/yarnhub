@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isStartKeyword,
   isStopKeyword,
   nextStep,
   normaliseAnswer,
@@ -75,6 +76,17 @@ describe("isStopKeyword", () => {
     expect(isStopKeyword("please dont stop")).toBe(false);
     expect(isStopKeyword("")).toBe(false);
     expect(isStopKeyword(null)).toBe(false);
+  });
+});
+
+describe("isStartKeyword", () => {
+  it("matches START and UNSTOP as a whole body", () => {
+    expect(isStartKeyword("START")).toBe(true);
+    expect(isStartKeyword("  unstop. ")).toBe(true);
+  });
+  it("does not treat sentences containing start as opt-in", () => {
+    expect(isStartKeyword("start the meeting")).toBe(false);
+    expect(isStartKeyword("STOP")).toBe(false);
   });
 });
 

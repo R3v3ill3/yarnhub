@@ -42,9 +42,15 @@ const NO_SYNONYMS = new Set([
  * does, the reply is an opt-out, never a survey answer).
  */
 const STOP_RE = /^\s*(stop|unsubscribe|opt\s*out|optout)\s*[.!]*\s*$/i;
+const START_RE = /^\s*(start|unstop)\s*[.!]*\s*$/i;
 
 export function isStopKeyword(body: string | null | undefined): boolean {
   return !!body && STOP_RE.test(body);
+}
+
+/** Whole-body START / UNSTOP — restores opt-in for this organisation only. */
+export function isStartKeyword(body: string | null | undefined): boolean {
+  return !!body && START_RE.test(body);
 }
 
 /**

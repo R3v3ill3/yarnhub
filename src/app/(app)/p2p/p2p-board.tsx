@@ -42,8 +42,7 @@ function toBoardItem(c: ContactRow): P2pBoardItemLike {
   return {
     item_id: c.id,
     status: "pending",
-    worker_name: [c.first_name, c.last_name].filter(Boolean).join(" ") || c.phone_e164,
-    employer_name: null,
+    contact_name: [c.first_name, c.last_name].filter(Boolean).join(" ") || c.phone_e164,
     phone_e164: c.phone_e164,
     sms_opt_out: c.sms_opt_out,
   };
@@ -158,7 +157,7 @@ export function P2pBoard(props: {
                           }}
                         />
                       </td>
-                      <td className="px-3 py-2">{item.worker_name}</td>
+                      <td className="px-3 py-2">{item.contact_name}</td>
                       <td className="px-3 py-2 font-mono">
                         {item.phone_e164 ? toDisplay(item.phone_e164) : "—"}
                         {item.sms_opt_out ? (

@@ -31,6 +31,7 @@ export interface Contact {
   sms_opt_out: boolean;
   sms_opt_out_at: string | null;
   sms_opt_out_source: string | null;
+  sms_consent_source: "manual" | "import" | "legacy" | null;
   notes: string | null;
   created_at: string;
 }
@@ -63,7 +64,7 @@ export interface SmsConversation {
   our_number_id: string;
   contact_id: string | null;
   phone_e164: string;
-  state: string;
+  state: "open" | "needs_reply" | "closed";
   last_message_at: string | null;
   last_inbound_at: string | null;
   last_outbound_at: string | null;

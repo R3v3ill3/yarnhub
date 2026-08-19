@@ -79,6 +79,7 @@ async function mirrorSuccessfulSends(
     ourNumberId: string;
     senderUserId: string | null;
     sends: Array<{
+      itemId: string;
       contactId: string;
       phoneE164: string;
       providerMessageId: string | null;
@@ -96,6 +97,10 @@ async function mirrorSuccessfulSends(
       contactId: send.contactId,
       sentAt,
     });
+    await admin
+      .from("sms_p2p_send_items")
+      .update({ conversation_id: conversationId })
+      .eq("id", send.itemId);
     await appendOutboundMessage(admin, {
       orgId: args.orgId,
       conversationId,
@@ -351,6 +356,7 @@ export async function dispatchDueP2pSends(
         }
 
         const successes: Array<{
+          itemId: string;
           contactId: string;
           phoneE164: string;
           providerMessageId: string | null;
@@ -384,6 +390,7 @@ export async function dispatchDueP2pSends(
                   .eq("id", logId);
               }
               successes.push({
+                itemId: item.id,
                 contactId: contact.id,
                 phoneE164: to,
                 providerMessageId: result.providerMessageId,

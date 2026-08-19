@@ -9,7 +9,7 @@
 **Runtime:** Next.js on Vercel, Postgres+Auth+Realtime on the **yarnhub** Supabase project (not OA).  
 **Code origin:** engines copied from Offshore Alliance organising-db; data model and auth are new.
 
-Read `docs/VIABILITY.md` (copied from OA) for why. This file is the build order.
+Read `docs/VIABILITY.md` (copied from OA) for why. This file is the original build order (A–E). **Catch-up work to match current OA SMS operator UX** is `docs/SMS_ALIGNMENT_BRIEF.md` + `docs/SMS_CATCHUP_PLAN.md` — do that instead of re-scaffolding A–C.
 
 ---
 

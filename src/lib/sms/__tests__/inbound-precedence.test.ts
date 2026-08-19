@@ -16,10 +16,18 @@ import {
 } from "../sender-purpose";
 
 describe("inbound precedence", () => {
-  it("is STOP → live survey by member phone → live relay by to-number → inbox", () => {
+  it("is STOP → START → live survey by member phone → live relay by to-number → inbox", () => {
     expect(
-      decideInboundLeg({ isStop: true, hasLiveSurvey: true, hasLiveRelay: true }),
+      decideInboundLeg({ isStop: true, isStart: true, hasLiveSurvey: true, hasLiveRelay: true }),
     ).toBe("stop");
+    expect(
+      decideInboundLeg({
+        isStop: false,
+        isStart: true,
+        hasLiveSurvey: true,
+        hasLiveRelay: true,
+      }),
+    ).toBe("start");
     expect(
       decideInboundLeg({ isStop: false, hasLiveSurvey: true, hasLiveRelay: true }),
     ).toBe("survey");

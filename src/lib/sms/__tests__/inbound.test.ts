@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { decideWebhookAuth, isStopEvent, routeInboundThread } from "../inbound";
+import { decideWebhookAuth, isStartEvent, isStopEvent, routeInboundThread } from "../inbound";
 import { MobileMessageProvider } from "../provider/mobile-message-provider";
 import type { RoutingNumber } from "../conversation-routing";
 
@@ -114,6 +114,32 @@ describe("isStopEvent", () => {
         providerMessageId: "1",
         originalMessageId: null,
         originalCustomRef: null,
+        receivedAt: null,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("isStartEvent", () => {
+  it("treats START bodies as opt-in and ignores STOP", () => {
+    expect(
+      isStartEvent({
+        type: "inbound",
+        from: "+61411111111",
+        to: "+61400000001",
+        body: "START",
+        providerMessageId: "1",
+        originalMessageId: null,
+        originalCustomRef: null,
+        receivedAt: null,
+      }),
+    ).toBe(true);
+    expect(
+      isStartEvent({
+        type: "unsubscribe",
+        from: "+61411111111",
+        to: "+61400000001",
+        providerMessageId: "1",
         receivedAt: null,
       }),
     ).toBe(false);

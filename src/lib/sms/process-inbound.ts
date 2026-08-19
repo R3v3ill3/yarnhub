@@ -3,6 +3,7 @@ import { toE164 } from "@/lib/phone/normalise-phone";
 import {
   decideInboundLeg,
   inboundPhoneAndTo,
+  isStartEvent,
   isStopEvent,
   routeInboundThread,
 } from "@/lib/sms/inbound";
@@ -151,17 +152,19 @@ export async function processInboundWebhook(args: {
       : phoneE164;
 
   const stop = isStopEvent(event);
+  const start = !stop && isStartEvent(event);
   const liveSession =
-    memberPhone && !stop
+    memberPhone && !stop && !start
       ? await findLiveSessionByPhone(admin, orgId, memberPhone)
       : null;
   const liveRelay =
-    ourNumberId && !stop
+    ourNumberId && !stop && !start
       ? await findLiveRelayByNumberId(admin, orgId, ourNumberId)
       : null;
 
   const leg = decideInboundLeg({
     isStop: stop,
+    isStart: start,
     hasLiveSurvey: Boolean(liveSession),
     hasLiveRelay: Boolean(liveRelay),
   });
@@ -212,6 +215,41 @@ export async function processInboundWebhook(args: {
       await bumpConversationUnread(admin, conversationId, receivedAt);
     }
     return { ok: true, status: 200, conversationId, optedOut: true, leg };
+  }
+
+  if (leg === "start") {
+    if (memberPhone) {
+      await admin
+        .from("contacts")
+        .update({ sms_opt_out: false })
+        .eq("organisation_id", orgId)
+        .eq("phone_e164", memberPhone);
+    }
+
+    if (!ourNumberId || !memberPhone) {
+      return { ok: true, status: 200, optedOut: false, unmatched: !ourNumberId, leg };
+    }
+
+    const contactId = await ensureContact(admin, orgId, memberPhone, false);
+    const conversationId = await upsertConversation(admin, {
+      orgId,
+      ourNumberId,
+      phoneE164: memberPhone,
+      contactId,
+    });
+    const receivedAt = new Date().toISOString();
+    const appended = await appendInboundMessage(admin, {
+      orgId,
+      conversationId,
+      body: inbound.body || "START",
+      phoneE164: memberPhone,
+      providerMessageId: inbound.providerMessageId,
+      createdAt: receivedAt,
+    });
+    if (appended) {
+      await bumpConversationUnread(admin, conversationId, receivedAt);
+    }
+    return { ok: true, status: 200, conversationId, optedOut: false, leg };
   }
 
   if (leg === "survey" && liveSession && memberPhone) {

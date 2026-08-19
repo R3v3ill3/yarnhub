@@ -160,7 +160,7 @@ export async function bumpConversationUnread(
       last_message_at: occurredAt,
       last_inbound_at: occurredAt,
       unread_count: (conv?.unread_count ?? 0) + 1,
-      state: "open",
+      state: "needs_reply",
     })
     .eq("id", conversationId);
 }

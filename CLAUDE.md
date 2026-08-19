@@ -11,7 +11,7 @@ You are implementing **Yarnhub**, not Offshore Alliance (OA) organising-db.
 
 This repo was scaffolded with Next.js and seeded with SMS **engines** copied from OA. Do not add OA as a git remote, submodule, or shared package.
 
-Read in this order: this file → `docs/IMPLEMENTATION_PLAN.md` → `docs/VIABILITY.md` (if present) → `seed/from-oa/MANIFEST.md`.
+Read in this order: this file → `docs/IMPLEMENTATION_PLAN.md` → `docs/SMS_ALIGNMENT_BRIEF.md` → `docs/SMS_CATCHUP_PLAN.md` → `docs/VIABILITY.md` (if present) → `seed/from-oa/MANIFEST.md`.
 
 ---
 
@@ -57,7 +57,7 @@ Do **not** apply OA `supabase/migrations/*sms*.sql`. Write new migrations for th
 - RLS on every exposed table. Service role only for webhook + cron after verifying HMAC or `CRON_SECRET`.
 - Conversation unique: `(organisation_id, our_number_id, phone_e164)`.
 - Live survey unique: `(organisation_id, phone_e164)` where state is invited/active.
-- Inbound order: STOP → live survey by **member phone** → live relay by **to-number** → inbox.
+- Inbound order: STOP → START/UNSTOP → live survey by **member phone** → live relay by **to-number** → inbox.
 - Blast/P2P: reject sender `purpose` `survey` or `relay`.
 - Encrypt MM passwords (`SMS_CREDENTIALS_KEY`). Never `NEXT_PUBLIC_` the service role.
 - Node runtime (not Edge) for webhook HMAC.

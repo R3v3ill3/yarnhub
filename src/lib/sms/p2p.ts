@@ -62,8 +62,7 @@ export function renderP2pBody(
 export interface P2pBoardItemLike {
   item_id: number | string;
   status: string;
-  worker_name: string;
-  employer_name: string | null;
+  contact_name: string;
   phone_e164: string | null;
   sms_opt_out: boolean;
 }
@@ -74,7 +73,7 @@ export interface P2pBoardFilter {
   status: string;
 }
 
-/** Case-insensitive name/employer/phone filter + status filter. */
+/** Case-insensitive name/phone filter + status filter. */
 export function filterP2pItems<T extends P2pBoardItemLike>(
   items: T[],
   filter: P2pBoardFilter,
@@ -84,8 +83,7 @@ export function filterP2pItems<T extends P2pBoardItemLike>(
     if (filter.status !== "all" && item.status !== filter.status) return false;
     if (!term) return true;
     return (
-      item.worker_name.toLowerCase().includes(term) ||
-      (item.employer_name ?? "").toLowerCase().includes(term) ||
+      item.contact_name.toLowerCase().includes(term) ||
       (item.phone_e164 ?? "").includes(term)
     );
   });

@@ -14,8 +14,7 @@ import {
 function item(overrides: Partial<P2pBoardItemLike> & { item_id: number }): P2pBoardItemLike {
   return {
     status: "pending",
-    worker_name: "Alex Mitchell",
-    employer_name: "Woodside Energy",
+    contact_name: "Alex Mitchell",
     phone_e164: "+61412345678",
     sms_opt_out: false,
     ...overrides,
@@ -73,9 +72,9 @@ describe("renderP2pBody", () => {
 
 describe("filterP2pItems", () => {
   const items = [
-    item({ item_id: 1, worker_name: "Alex Mitchell" }),
-    item({ item_id: 2, worker_name: "Sam Ngata", employer_name: "Chevron" }),
-    item({ item_id: 3, worker_name: "Dana Cole", status: "sent" }),
+    item({ item_id: 1, contact_name: "Alex Mitchell" }),
+    item({ item_id: 2, contact_name: "Sam Ngata" }),
+    item({ item_id: 3, contact_name: "Dana Cole", status: "sent" }),
   ];
 
   it("matches name case-insensitively", () => {
@@ -84,9 +83,12 @@ describe("filterP2pItems", () => {
     ).toEqual([1]);
   });
 
-  it("matches employer", () => {
+  it("matches phone", () => {
     expect(
-      filterP2pItems(items, { search: "chev", status: "all" }).map((i) => i.item_id),
+      filterP2pItems(
+        [item({ item_id: 2, contact_name: "Sam Ngata", phone_e164: "+61499888777" })],
+        { search: "99888", status: "all" },
+      ).map((i) => i.item_id),
     ).toEqual([2]);
   });
 
