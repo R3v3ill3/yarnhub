@@ -1,4 +1,5 @@
 export const APP_NAV = [
+  { href: "/sms/new", label: "New SMS" },
   { href: "/inbox", label: "Inbox" },
   { href: "/blasts", label: "Blasts" },
   { href: "/p2p", label: "P2P" },

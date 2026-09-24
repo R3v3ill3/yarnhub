@@ -34,7 +34,7 @@ export default async function SurveysPage() {
           description={`Reply-native questions. One live session per phone in ${org.name}.`}
           actions={
             <Button asChild>
-              <Link href="/surveys/new">New survey</Link>
+              <Link href="/sms/new?kind=survey">New survey</Link>
             </Button>
           }
         />

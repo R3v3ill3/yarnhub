@@ -1,6 +1,7 @@
 import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { AppPage } from "@/components/app-page";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { P2pBoard } from "./p2p-board";
 
@@ -31,6 +32,11 @@ export default async function P2pPage() {
         <PageHeader
           title="P2P chat"
           description="Pick people, send a personalised opener, then work the replies in the chat workspace. The same threads stay in Inbox."
+          actions={
+            <Button asChild>
+              <Link href="/sms/new?kind=chat">New chat</Link>
+            </Button>
+          }
         />
         {sends?.length ? (
           <ul className="flex flex-wrap gap-2 text-sm">

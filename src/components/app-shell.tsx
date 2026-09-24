@@ -13,6 +13,7 @@ import {
   Megaphone,
   MessagesSquare,
   Radio,
+  Send,
   Settings,
   Shield,
   Users,
@@ -24,6 +25,7 @@ import { APP_NAV } from "@/lib/app-nav";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, typeof Inbox> = {
+  "/sms/new": Send,
   "/inbox": Inbox,
   "/blasts": Megaphone,
   "/p2p": MessagesSquare,

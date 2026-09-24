@@ -152,6 +152,7 @@ export async function attachNumber(formData: FormData): Promise<{ error?: string
   }
   revalidatePath("/settings");
   revalidatePath("/inbox");
+  revalidatePath("/sms/new");
   await writeAudit(createAdminClient(), {
     organisationId: org.id,
     actorUserId: user.id,
@@ -200,6 +201,7 @@ export async function updateNumberPurpose(formData: FormData): Promise<{ error?:
   revalidatePath("/surveys");
   revalidatePath("/relays");
   revalidatePath("/blasts");
+  revalidatePath("/sms/new");
   await writeAudit(createAdminClient(), {
     organisationId: org.id,
     actorUserId: user.id,
