@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SmsSurveyFlowChart, questionCardClass } from "@/components/sms-survey-flow-chart";
+import { flowFromDraft } from "@/lib/sms/survey-flow";
 import { SURVEY_QUESTION_SOFT_CAP, renderInvitation } from "@/lib/sms/survey-engine";
 import type { SmsSurveyQuestionRow } from "@/types/sms";
 import { createSurvey } from "./actions";
@@ -57,6 +59,7 @@ export function SurveyEditorForm(props: { orgName: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [selected, setSelected] = useState(0);
   const [questions, setQuestions] = useState<DraftQuestion[]>([
     { prompt: "", qtype: "yes_no", options: "", yesGoto: "next", noGoto: "next" },
   ]);
@@ -135,8 +138,14 @@ export function SurveyEditorForm(props: { orgName: string }) {
             {questions.length > SURVEY_QUESTION_SOFT_CAP ? (
               <Alert>More than {SURVEY_QUESTION_SOFT_CAP} questions tends to drop completion.</Alert>
             ) : null}
+            <SmsSurveyFlowChart
+              questions={flowFromDraft(questions)}
+              selectedIndex={selected}
+              onSelectQuestion={setSelected}
+              markerId="survey-editor-flow"
+            />
             {questions.map((q, i) => (
-              <div key={i} className="space-y-2 rounded-md border border-border p-3">
+              <div key={i} className={questionCardClass(selected === i)}>
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">Q{i + 1}</p>
                   {questions.length > 1 ? (

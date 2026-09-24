@@ -84,7 +84,7 @@ export function AppShell({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center justify-between gap-3 bg-primary px-4 text-white lg:hidden">
-          <BrandLockup href="/inbox" inverted subtitle={orgName} />
+          <BrandLockup href="/sms/new" inverted subtitle={orgName} />
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-white/15"
@@ -117,7 +117,7 @@ function SidebarBody({
   return (
     <>
       <div className="bg-primary px-4 py-5 text-white">
-        <BrandLockup href="/inbox" inverted subtitle={orgName} />
+        <BrandLockup href="/sms/new" inverted subtitle={orgName} />
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
         {APP_NAV.map((item) => {

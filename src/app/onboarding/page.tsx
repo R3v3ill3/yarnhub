@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingPage() {
   const membership = await getOrgMembership();
   if (!membership?.user) redirect("/login");
-  if (membership.org) redirect("/inbox");
+  if (membership.org) redirect("/sms/new");
 
   return (
     <AuthShell

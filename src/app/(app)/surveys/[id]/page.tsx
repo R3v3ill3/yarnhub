@@ -5,7 +5,16 @@ import { AppPage } from "@/components/app-page";
 import { Badge } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toDisplay } from "@/lib/phone/normalise-phone";
+import { SmsSurveyFlowChart } from "@/components/sms-survey-flow-chart";
+import { SurveyReportDashboard } from "@/components/sms-survey-report";
 import { surveyAnswersToWideCsv } from "@/lib/sms/survey-export";
+import { flowFromSaved } from "@/lib/sms/survey-flow";
+import {
+  funnelFromSessions,
+  participationSlices,
+  questionSlices,
+} from "@/lib/sms/survey-report";
+import type { SmsSurveyQuestionType } from "@/types/sms";
 import { SurveyLaunchForm } from "../survey-launch-form";
 import { SurveyOps } from "../survey-ops";
 
@@ -28,7 +37,7 @@ export default async function SurveyDetailPage({
     await Promise.all([
       supabase
         .from("sms_survey_questions")
-        .select("id, sort_order, prompt, qtype, branching")
+        .select("id, sort_order, prompt, qtype, options, branching")
         .eq("survey_id", id)
         .order("sort_order", { ascending: true }),
       supabase
@@ -42,7 +51,7 @@ export default async function SurveyDetailPage({
         .order("created_at", { ascending: false }),
       supabase
         .from("sms_survey_sessions")
-        .select("id, state, phone_e164, contacts ( first_name, last_name )")
+        .select("id, state, phone_e164, first_answer_at, contacts ( first_name, last_name )")
         .eq("survey_id", id),
     ]);
   const sessionIds = (sessions ?? []).map((session) => session.id as string);
@@ -67,6 +76,15 @@ export default async function SurveyDetailPage({
     acc[row.state] = (acc[row.state] ?? 0) + 1;
     return acc;
   }, {});
+  const savedQuestions = questions ?? [];
+  const answerRows = answers ?? [];
+  const funnel = funnelFromSessions(
+    (sessions ?? []).map((session) => ({
+      state: session.state as string,
+      first_answer_at: (session.first_answer_at as string | null) ?? null,
+    })),
+  );
+  const participation = participationSlices(funnel);
 
   return (
     <AppPage>
@@ -81,6 +99,45 @@ export default async function SurveyDetailPage({
             {survey.is_test ? <Badge>Test</Badge> : null}
           </div>
         </div>
+        <SmsSurveyFlowChart
+          questions={flowFromSaved(
+            savedQuestions.map((question) => ({
+              id: question.id,
+              prompt: question.prompt,
+              qtype: question.qtype,
+              branching: question.branching,
+            })),
+          )}
+          markerId="survey-detail-flow"
+        />
+        <SurveyReportDashboard
+          status={survey.status}
+          invited={funnel.ever_invited_count}
+          started={funnel.started_count}
+          completed={funnel.completed_count}
+          participation={participation}
+          questions={savedQuestions.map((question) => {
+            const mine = answerRows.filter((answer) => answer.question_id === question.id);
+            return {
+              id: question.id,
+              prompt: question.prompt,
+              qtype: question.qtype,
+              slices: questionSlices(
+                {
+                  question_id: question.id,
+                  qtype: question.qtype as SmsSurveyQuestionType,
+                  options: question.options,
+                },
+                mine.map((answer) => ({
+                  question_id: answer.question_id,
+                  parsed_value: answer.parsed_value,
+                })),
+              ),
+              answered: mine.filter((answer) => answer.parsed_value != null || answer.raw_body).length,
+              unparsed: mine.filter((answer) => answer.parsed_value == null && answer.raw_body).length,
+            };
+          })}
+        />
         <Card>
           <CardHeader>
             <CardTitle>Questions</CardTitle>

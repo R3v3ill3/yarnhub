@@ -54,7 +54,7 @@ export async function proxy(request: NextRequest) {
 
   if (hasUser && (path.startsWith("/login") || path.startsWith("/signup"))) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/inbox";
+    redirectUrl.pathname = "/sms/new";
     return NextResponse.redirect(redirectUrl);
   }
 

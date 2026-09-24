@@ -21,7 +21,7 @@ export function JoinForm({ token }: { token: string }) {
       setError(result.error);
       return;
     }
-    router.push("/inbox");
+    router.push("/sms/new");
     router.refresh();
   }
 

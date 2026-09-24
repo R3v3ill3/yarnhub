@@ -47,7 +47,7 @@ export default async function PlatformPage() {
     <div className="flex min-h-full flex-col">
       <header className="bg-primary text-white">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4">
-          <BrandLockup href="/inbox" inverted subtitle="Platform console" />
+          <BrandLockup href="/sms/new" inverted subtitle="Platform console" />
           <SignOutButton />
         </div>
       </header>

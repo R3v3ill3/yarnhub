@@ -18,7 +18,7 @@ export default async function JoinPage({
 
   const membership = await getOrgMembership();
   if (membership?.org) {
-    redirect("/inbox");
+    redirect("/sms/new");
   }
 
   return (

@@ -60,7 +60,7 @@ export default async function HomePage() {
   if (isSupabaseConfigured()) {
     const membership = await getOrgMembership();
     if (membership?.user) {
-      redirect(membership.org ? "/inbox" : "/onboarding");
+      redirect(membership.org ? "/sms/new" : "/onboarding");
     }
   }
 
