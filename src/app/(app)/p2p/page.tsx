@@ -3,6 +3,7 @@ import { AppPage } from "@/components/app-page";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { P2P_STEPS } from "@/lib/demo/redgum-bargaining";
 import { P2pBoard } from "./p2p-board";
 
 export default async function P2pPage() {
@@ -20,7 +21,7 @@ export default async function P2pPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("sms_p2p_sends")
-      .select("id, status, created_at")
+      .select("id, status, created_at, body_template")
       .eq("organisation_id", org.id)
       .order("created_at", { ascending: false })
       .limit(8),
@@ -40,13 +41,16 @@ export default async function P2pPage() {
         />
         {sends?.length ? (
           <ul className="flex flex-wrap gap-2 text-sm">
-            {sends.map((send) => (
-              <li key={send.id}>
-                <Link href={`/p2p/${send.id}`} className="rounded-full border border-border px-3 py-1 hover:bg-accent">
-                  {new Date(send.created_at).toLocaleString()} · {send.status}
-                </Link>
-              </li>
-            ))}
+            {sends.map((send) => {
+              const step = P2P_STEPS.find((item) => item.template === send.body_template);
+              return (
+                <li key={send.id}>
+                  <Link href={`/p2p/${send.id}`} className="rounded-full border border-border px-3 py-1 hover:bg-accent">
+                    {step?.title ?? new Date(send.created_at).toLocaleString()} · {send.status}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         ) : null}
         <P2pBoard orgName={org.name} numbers={numbers ?? []} contacts={contacts ?? []} />

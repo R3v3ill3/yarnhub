@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   BarChart3,
+  Clapperboard,
   ClipboardList,
   Contact,
   Inbox,
@@ -33,6 +34,7 @@ const ICONS: Record<string, typeof Inbox> = {
   "/relays": Radio,
   "/contacts": Contact,
   "/reports": BarChart3,
+  "/demo": Clapperboard,
   "/team": Users,
   "/settings": Settings,
 };
