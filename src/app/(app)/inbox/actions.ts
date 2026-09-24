@@ -8,6 +8,7 @@ import { processInboundWebhook } from "@/lib/sms/process-inbound";
 import { toE164 } from "@/lib/phone/normalise-phone";
 import { providerAccountLookup } from "@/lib/sms/provider-lookup";
 import { wrapSmsProviderForOrg } from "@/lib/sms/send-guard";
+import { inboxUnsafePurposeError } from "@/lib/sms/sender-purpose";
 import { appendOutboundMessage, upsertOutboundThread } from "@/lib/sms/thread-write";
 
 export async function simulateInboundReply(formData: FormData): Promise<{
@@ -175,4 +176,135 @@ export async function claimConversation(formData: FormData): Promise<{ error?: s
   revalidatePath(`/inbox/${conversationId}`);
   revalidatePath("/inbox");
   return {};
+}
+
+export async function setConversationState(formData: FormData): Promise<{ error?: string }> {
+  const { org, supabase } = await requireOrgMember();
+  const conversationId = String(formData.get("conversationId") ?? "");
+  const state = String(formData.get("state") ?? "") === "closed" ? "closed" : "open";
+  const { error } = await supabase
+    .from("sms_conversations")
+    .update({ state })
+    .eq("id", conversationId)
+    .eq("organisation_id", org.id);
+  if (error) return { error: error.message };
+  revalidatePath(`/inbox/${conversationId}`);
+  revalidatePath("/inbox");
+  return {};
+}
+
+export async function setContactOptOut(formData: FormData): Promise<{ error?: string }> {
+  const { org, supabase } = await requireOrgMember();
+  const contactId = String(formData.get("contactId") ?? "");
+  const conversationId = String(formData.get("conversationId") ?? "");
+  const optOut = String(formData.get("optOut") ?? "") === "1";
+  if (!contactId) return { error: "Save this person as a contact first" };
+  const { error } = await supabase
+    .from("contacts")
+    .update(
+      optOut
+        ? {
+            sms_opt_out: true,
+            sms_opt_out_at: new Date().toISOString(),
+            sms_opt_out_source: "staff",
+          }
+        : { sms_opt_out: false },
+    )
+    .eq("id", contactId)
+    .eq("organisation_id", org.id);
+  if (error) return { error: error.message };
+  revalidatePath(`/inbox/${conversationId}`);
+  return {};
+}
+
+export async function addThreadNote(formData: FormData): Promise<{ error?: string }> {
+  const { org, user, supabase } = await requireOrgMember();
+  const conversationId = String(formData.get("conversationId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  if (!body) return { error: "Note is empty" };
+  const { error } = await supabase.from("sms_conversation_notes").insert({
+    organisation_id: org.id,
+    conversation_id: conversationId,
+    author_user_id: user.id,
+    body,
+  });
+  if (error) return { error: error.message };
+  revalidatePath(`/inbox/${conversationId}`);
+  return {};
+}
+
+export async function startConversation(formData: FormData): Promise<{
+  error?: string;
+  conversationId?: string;
+}> {
+  const { org, user, supabase } = await requireOrgMember();
+  const numberId = String(formData.get("numberId") ?? "");
+  const contactId = String(formData.get("contactId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  if (!numberId) return { error: "Pick a number to send from" };
+  if (!contactId) return { error: "Pick a contact" };
+
+  const { data: number } = await supabase
+    .from("sms_numbers")
+    .select("id, phone_e164, purpose, status")
+    .eq("id", numberId)
+    .eq("organisation_id", org.id)
+    .maybeSingle();
+  if (!number || number.status !== "active") return { error: "Unknown or retired number" };
+  const purposeBlock = inboxUnsafePurposeError(number.purpose);
+  if (purposeBlock) return { error: purposeBlock };
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("id, phone_e164, sms_opt_out")
+    .eq("id", contactId)
+    .eq("organisation_id", org.id)
+    .maybeSingle();
+  if (!contact) return { error: "Contact not found" };
+  if (contact.sms_opt_out) return { error: "This contact has opted out of SMS" };
+  const phone = toE164(contact.phone_e164);
+  if (!phone) return { error: "Contact phone is invalid" };
+
+  const admin = createAdminClient();
+  const conversationId = await upsertOutboundThread(admin, {
+    orgId: org.id,
+    ourNumberId: number.id,
+    phoneE164: phone,
+    contactId: contact.id,
+    sentAt: new Date().toISOString(),
+  });
+
+  if (!body) {
+    revalidatePath("/inbox");
+    return { conversationId };
+  }
+
+  let provider;
+  try {
+    provider = wrapSmsProviderForOrg(
+      admin,
+      org.id,
+      await getSmsProviderForOrg(org.id, providerAccountLookup(admin)),
+    );
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "SMS provider is not configured" };
+  }
+  const results = await provider.sendBatch(
+    [{ to: phone, body, sender: number.phone_e164, customRef: `inbox-new-${conversationId}` }],
+    { idempotencyKey: `inbox-new:${conversationId}:${Date.now()}` },
+  );
+  const result = results[0];
+  if (!result || result.status !== "success") return { error: result?.error || "Send failed" };
+  await appendOutboundMessage(admin, {
+    orgId: org.id,
+    conversationId,
+    body,
+    phoneE164: phone,
+    senderUserId: user.id,
+    providerMessageId: result.providerMessageId,
+    status: result.status,
+  });
+  revalidatePath("/inbox");
+  revalidatePath(`/inbox/${conversationId}`);
+  return { conversationId };
 }

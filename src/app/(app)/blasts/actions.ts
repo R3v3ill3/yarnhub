@@ -6,6 +6,13 @@ import { destructiveRoleError } from "@/lib/auth/roles";
 import { blackoutOverrideError } from "@/lib/sms/blast-body";
 import { computeSendBefore } from "@/lib/sms/blackout";
 import { validateSmsBody } from "@/lib/sms/compliance";
+import { insertContactList } from "@/lib/sms/contact-lists";
+import { archiveBlockReason } from "@/lib/sms/archive-policy";
+import {
+  BLAST_COHORT_LABELS,
+  computeBlastCohortContactIds,
+  type BlastCohort,
+} from "@/lib/sms/reporting-cohorts";
 import { inboxUnsafePurposeError } from "@/lib/sms/sender-purpose";
 
 export async function queueBlast(
@@ -89,6 +96,7 @@ export async function queueBlast(
 
   const now = new Date();
   const sendBefore = computeSendBefore(now, org.timezone, blackoutOverride);
+  const asDraft = String(formData.get("save_as") ?? "") === "draft";
 
   const { data: blast, error: blastError } = await supabase
     .from("sms_blasts")
@@ -100,9 +108,9 @@ export async function queueBlast(
       timezone: org.timezone,
       blackout_override: blackoutOverride,
       blackout_override_reason: blackoutOverride ? blackoutReason.trim() : null,
-      status: "queued",
+      status: asDraft ? "draft" : "queued",
       created_by: user.id,
-      queued_at: now.toISOString(),
+      queued_at: asDraft ? null : now.toISOString(),
     })
     .select("id")
     .single();
@@ -127,4 +135,135 @@ export async function queueBlast(
   revalidatePath("/blasts");
   revalidatePath(`/blasts/${blast.id}`);
   return { blastId: blast.id };
+}
+
+export async function setBlastLifecycle(formData: FormData): Promise<{ error?: string }> {
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
+  const blastId = String(formData.get("blastId") ?? "");
+  const action = String(formData.get("action") ?? "");
+  const { data: blast } = await supabase
+    .from("sms_blasts")
+    .select("id, status")
+    .eq("id", blastId)
+    .eq("organisation_id", org.id)
+    .maybeSingle();
+  if (!blast) return { error: "Blast not found" };
+
+  if (action === "pause") {
+    if (blast.status !== "queued" && blast.status !== "sending") {
+      return { error: "Only a queued or sending blast can be paused" };
+    }
+    const { error } = await supabase
+      .from("sms_blasts")
+      .update({ status: "paused" })
+      .eq("id", blastId);
+    if (error) return { error: error.message };
+    const { error: releaseError } = await supabase
+      .from("sms_blast_items")
+      .update({ status: "queued", claimed_at: null })
+      .eq("blast_id", blastId)
+      .eq("organisation_id", org.id)
+      .eq("status", "sending");
+    if (releaseError) return { error: releaseError.message };
+  } else if (action === "resume" || action === "queue") {
+    if (blast.status !== "paused" && blast.status !== "draft") {
+      return { error: "Only a draft or paused blast can be queued" };
+    }
+    const { error } = await supabase
+      .from("sms_blasts")
+      .update({ status: "queued", queued_at: new Date().toISOString() })
+      .eq("id", blastId);
+    if (error) return { error: error.message };
+  } else if (action === "cancel") {
+    if (blast.status === "sent" || blast.status === "cancelled") {
+      return { error: "This blast is already finished" };
+    }
+    const { error } = await supabase
+      .from("sms_blasts")
+      .update({ status: "cancelled", completed_at: new Date().toISOString() })
+      .eq("id", blastId);
+    if (error) return { error: error.message };
+    await supabase
+      .from("sms_blast_items")
+      .update({ status: "skipped", failure_reason: "Blast cancelled" })
+      .eq("blast_id", blastId)
+      .eq("organisation_id", org.id)
+      .in("status", ["queued", "sending"]);
+  } else if (action === "archive" || action === "restore") {
+    const reason = action === "archive" ? archiveBlockReason("blast", blast.status) : null;
+    if (reason) return { error: reason };
+    const { error } = await supabase
+      .from("sms_blasts")
+      .update({ archived_at: action === "archive" ? new Date().toISOString() : null })
+      .eq("id", blastId);
+    if (error) return { error: error.message };
+  } else {
+    return { error: "Unknown blast action" };
+  }
+
+  revalidatePath("/blasts");
+  revalidatePath(`/blasts/${blastId}`);
+  return {};
+}
+
+const BLAST_COHORTS: BlastCohort[] = ["replied", "delivered_not_replied", "failed"];
+
+export async function createBlastCohortList(formData: FormData): Promise<{ error?: string }> {
+  const { org, supabase, role } = await requireOrgMember();
+  const blocked = destructiveRoleError(role);
+  if (blocked) return { error: blocked };
+  const blastId = String(formData.get("blastId") ?? "");
+  const cohort = String(formData.get("cohort") ?? "") as BlastCohort;
+  const name = String(formData.get("list_name") ?? "").trim();
+  if (!BLAST_COHORTS.includes(cohort)) return { error: "Pick a cohort" };
+
+  const { data: items } = await supabase
+    .from("sms_blast_items")
+    .select("contact_id, status, sent_at")
+    .eq("blast_id", blastId)
+    .eq("organisation_id", org.id);
+  const { data: logs } = await supabase
+    .from("sms_send_log")
+    .select("contact_id, status, sent_at")
+    .eq("blast_id", blastId)
+    .eq("organisation_id", org.id);
+  const delivery = new Map(
+    (logs ?? []).map((row) => [row.contact_id as string, row.status as string]),
+  );
+  const contactIds = [...new Set((items ?? []).map((item) => item.contact_id as string))];
+  const { data: conversations } = contactIds.length
+    ? await supabase
+        .from("sms_conversations")
+        .select("contact_id, last_inbound_at")
+        .eq("organisation_id", org.id)
+        .in("contact_id", contactIds)
+    : { data: [] };
+  const lastInbound = new Map<string, string>();
+  for (const row of conversations ?? []) {
+    if (!row.contact_id || !row.last_inbound_at) continue;
+    const previous = lastInbound.get(row.contact_id);
+    if (!previous || Date.parse(row.last_inbound_at) > Date.parse(previous)) {
+      lastInbound.set(row.contact_id, row.last_inbound_at);
+    }
+  }
+  const ids = computeBlastCohortContactIds(
+    (items ?? []).map((item) => ({
+      contact_id: item.contact_id as string,
+      status: delivery.get(item.contact_id as string) ?? (item.status as string),
+      sent_at: (item.sent_at as string | null) ?? null,
+    })),
+    lastInbound,
+    cohort,
+  );
+  const created = await insertContactList(supabase, {
+    orgId: org.id,
+    name: name || `${BLAST_COHORT_LABELS[cohort]} from blast`,
+    contactIds: ids,
+  });
+  if (created.error) return { error: created.error };
+  revalidatePath("/contacts");
+  revalidatePath(`/blasts/${blastId}`);
+  return {};
 }

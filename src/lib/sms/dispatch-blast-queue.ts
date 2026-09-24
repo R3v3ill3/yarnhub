@@ -299,6 +299,31 @@ export async function dispatchDueBlasts(
       summary.skipped += screenedOut.filter((s) => s.status === "skipped").length;
 
       if (sendable.length > 0) {
+        const { data: freshBlast } = await admin
+          .from("sms_blasts")
+          .select("status")
+          .eq("id", blast.id)
+          .maybeSingle();
+        if (freshBlast?.status !== "queued" && freshBlast?.status !== "sending") {
+          const terminal = freshBlast?.status === "cancelled" || freshBlast?.status === "sent";
+          await inChunks(sendable, async ({ item }) => {
+            await admin
+              .from("sms_blast_items")
+              .update(
+                terminal
+                  ? {
+                      status: "skipped",
+                      failure_reason: "Blast is no longer sending",
+                      claimed_at: null,
+                    }
+                  : { status: "queued", claimed_at: null },
+              )
+              .eq("id", item.id)
+              .eq("status", "sending");
+          });
+          continue;
+        }
+
         const logRows = sendable.map(({ item, contact, to, body }) => ({
           organisation_id: blast.organisation_id,
           blast_id: blast.id,

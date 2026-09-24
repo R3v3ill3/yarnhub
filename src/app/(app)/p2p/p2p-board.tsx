@@ -18,6 +18,7 @@ import {
   selectNextN,
   type P2pBoardItemLike,
 } from "@/lib/sms/p2p";
+import { SmsEmojiField } from "@/components/sms-emoji-field";
 import { countSegmentsWorstCase } from "@/lib/sms/segments";
 import { filterInboxSafeSenders } from "@/lib/sms/sender-purpose";
 import { queueP2pSend } from "./actions";
@@ -86,7 +87,8 @@ export function P2pBoard(props: {
       return;
     }
     setSelected(new Set());
-    router.refresh();
+    if (result.sendId) router.push(`/p2p/${result.sendId}`);
+    else router.refresh();
   }
 
   return (
@@ -243,6 +245,12 @@ export function P2pBoard(props: {
                 required
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
+              />
+              <SmsEmojiField
+                body={body}
+                onInsert={(emoji) =>
+                  setBody((current) => `${current}${current.endsWith(" ") || !current ? "" : " "}${emoji}`)
+                }
               />
             </div>
             <label className="flex items-start gap-2 text-sm">

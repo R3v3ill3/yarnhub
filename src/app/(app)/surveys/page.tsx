@@ -4,14 +4,27 @@ import { AppPage } from "@/components/app-page";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { TestRoster } from "./test-roster";
 
 export default async function SurveysPage() {
   const { supabase, org } = await requireOrgMember();
-  const { data: surveys } = await supabase
-    .from("sms_surveys")
-    .select("id, title, status, created_at, opened_at")
-    .eq("organisation_id", org.id)
-    .order("created_at", { ascending: false });
+  const [{ data: surveys }, { data: contacts }, { data: roster }] = await Promise.all([
+    supabase
+      .from("sms_surveys")
+      .select("id, title, status, created_at, opened_at, is_test, archived_at")
+      .eq("organisation_id", org.id)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("contacts")
+      .select("id, first_name, last_name, phone_e164")
+      .eq("organisation_id", org.id)
+      .order("last_name", { ascending: true }),
+    supabase
+      .from("sms_test_recipients")
+      .select("contact_id, contacts ( first_name, last_name, phone_e164 )")
+      .eq("organisation_id", org.id),
+  ]);
 
   return (
     <AppPage>
@@ -41,12 +54,30 @@ export default async function SurveysPage() {
                       {new Date(survey.created_at).toLocaleString()}
                     </p>
                   </div>
-                  <Badge variant="secondary">{survey.status}</Badge>
+                  <Badge variant="secondary">
+                    {survey.is_test ? "test · " : ""}
+                    {survey.status}
+                  </Badge>
                 </Link>
               </li>
             ))}
           </ul>
         )}
+        <TestRoster
+          contacts={contacts ?? []}
+          roster={(roster ?? []).map((row) => {
+            const contact = row.contacts as
+              | { first_name: string | null; last_name: string | null; phone_e164: string }
+              | { first_name: string | null; last_name: string | null; phone_e164: string }[]
+              | null;
+            const person = Array.isArray(contact) ? contact[0] : contact;
+            return {
+              contactId: row.contact_id as string,
+              name: [person?.first_name, person?.last_name].filter(Boolean).join(" "),
+              phone: person?.phone_e164 ?? "",
+            };
+          })}
+        />
       </div>
     </AppPage>
   );

@@ -24,9 +24,11 @@ import {
   findLiveRelayByNumberId,
   processRelayInbound,
 } from "@/lib/sms/relay-runtime";
+import { parseSmsTapback } from "@/lib/sms/tapback";
 import {
   appendInboundMessage,
   bumpConversationUnread,
+  touchConversationTimestamps,
 } from "@/lib/sms/thread-write";
 
 const UNIQUE_VIOLATION = "23505";
@@ -346,7 +348,13 @@ export async function processInboundWebhook(args: {
     providerMessageId: inbound.providerMessageId,
     createdAt: receivedAt,
   });
-  if (appended) {
+  if (appended && parseSmsTapback(inbound.body)) {
+    await touchConversationTimestamps(admin, {
+      conversationId,
+      occurredAt: receivedAt,
+      direction: "inbound",
+    });
+  } else if (appended) {
     await bumpConversationUnread(admin, conversationId, receivedAt);
   }
 

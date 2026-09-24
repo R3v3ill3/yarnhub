@@ -9,8 +9,9 @@ export default async function BlastsPage() {
   const { supabase, org } = await requireOrgMember();
   const { data: blasts } = await supabase
     .from("sms_blasts")
-    .select("id, name, status, created_at, queued_at, completed_at")
+    .select("id, name, status, created_at, queued_at, completed_at, archived_at")
     .eq("organisation_id", org.id)
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   return (

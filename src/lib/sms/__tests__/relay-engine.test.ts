@@ -3,6 +3,7 @@ import {
   GENERIC_MEMBER_CONTEXT,
   chooseBridgeMember,
   composeForwardBody,
+  memberMobileForwardLine,
   composeTargetReplyBody,
   decideMemberForward,
   matchPhoneInList,
@@ -187,6 +188,12 @@ describe("renderRelayTemplate / composeForwardBody", () => {
         context,
       }),
     ).toBe("bare message");
+  });
+
+  it("names the member mobile and tells the target to reply on this number", () => {
+    expect(memberMobileForwardLine("0412 345 678")).toBe(
+      "Member mobile 0412 345 678. Reply to this number and your reply will be passed back.",
+    );
   });
 });
 

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { toDisplay } from "@/lib/phone/normalise-phone";
 import type { SmsProvider, SendResult } from "@/lib/sms/provider";
 import { isWithinSendWindow } from "@/lib/sms/blackout";
 import { gatedProviderFactory } from "@/lib/sms/send-guard";
@@ -9,6 +10,7 @@ import {
   chooseBridgeMember,
   composeForwardBody,
   composeTargetReplyBody,
+  memberMobileForwardLine,
   decideMemberForward,
   matchPhoneInList,
   relayOptedOutReply,
@@ -428,12 +430,18 @@ export async function processRelayInbound(
   }
 
   const context = await loadMemberContext(db, relay.organisation_id, contactId);
-  const forwardedBody = composeForwardBody({
-    prefixTemplate: relay.prefix_template,
-    suffixTemplate: relay.suffix_template,
-    memberBody: event.body ?? "",
-    context,
-  });
+  const memberPhoneDisplay = toDisplay(phoneE164);
+  const forwardedBody = [
+    composeForwardBody({
+      prefixTemplate: relay.prefix_template,
+      suffixTemplate: relay.suffix_template,
+      memberBody: event.body ?? "",
+      context: { ...context, member_phone: memberPhoneDisplay },
+    }),
+    memberPhoneDisplay ? memberMobileForwardLine(memberPhoneDisplay) : "",
+  ]
+    .filter((part) => part.length > 0)
+    .join("\n");
 
   if (!isLiveRelayStatus(relay.status)) {
     return { handled: true, response: { ok: true, relay_id: relay.id } };

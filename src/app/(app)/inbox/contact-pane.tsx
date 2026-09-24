@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toDisplay } from "@/lib/phone/normalise-phone";
-import { claimConversation, updateContactNotes } from "./actions";
+import { claimConversation, setContactOptOut, updateContactNotes } from "./actions";
 
 export function ContactPane(props: {
   conversationId: string;
@@ -53,7 +53,35 @@ export function ContactPane(props: {
             Can receive SMS
           </Badge>
         )}
+        {props.optedOut ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            They can reply START to opt back in. You can lift the opt-out here if they asked you to.
+          </p>
+        ) : null}
       </div>
+      {props.contactId ? (
+        <form
+          action={async () => {
+            setPending(true);
+            setError(null);
+            const fd = new FormData();
+            fd.set("contactId", props.contactId ?? "");
+            fd.set("conversationId", props.conversationId);
+            fd.set("optOut", props.optedOut ? "0" : "1");
+            const result = await setContactOptOut(fd);
+            setPending(false);
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            router.refresh();
+          }}
+        >
+          <Button type="submit" size="sm" variant="outline" disabled={pending}>
+            {props.optedOut ? "Lift opt-out" : "Opt out"}
+          </Button>
+        </form>
+      ) : null}
       <form
         action={async () => {
           setPending(true);

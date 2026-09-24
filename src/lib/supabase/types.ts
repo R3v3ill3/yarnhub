@@ -123,5 +123,6 @@ export interface SmsBlast {
   created_by: string | null;
   queued_at: string | null;
   completed_at: string | null;
+  archived_at?: string | null;
   created_at: string;
 }

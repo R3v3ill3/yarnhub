@@ -1,6 +1,7 @@
 import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { Badge } from "@/components/ui/alert";
 import { toDisplay } from "@/lib/phone/normalise-phone";
+import Link from "next/link";
 import { ContactForms } from "./contact-forms";
 import { AppPage } from "@/components/app-page";
 import { PageHeader } from "@/components/page-header";
@@ -29,8 +30,13 @@ export default async function ContactsPage() {
       {lists?.length ? (
         <ul className="flex flex-wrap gap-2 text-sm text-muted-foreground">
           {lists.map((list) => (
-            <li key={list.id} className="rounded-full border border-border px-3 py-1">
-              {list.name}
+            <li key={list.id}>
+              <Link
+                href={`/contacts/lists/${list.id}`}
+                className="inline-block rounded-full border border-border px-3 py-1 hover:bg-accent"
+              >
+                {list.name}
+              </Link>
             </li>
           ))}
         </ul>

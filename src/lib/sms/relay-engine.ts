@@ -194,6 +194,11 @@ export function renderRelayTemplate(
  * member→target forward body: rendered prefix + member message +
  * rendered suffix, newline-joined, empty parts dropped.
  */
+/** Tells the target which mobile this forward belongs to, and where to reply. */
+export function memberMobileForwardLine(phoneDisplay: string): string {
+  return `Member mobile ${phoneDisplay}. Reply to this number and your reply will be passed back.`;
+}
+
 export function composeForwardBody(args: {
   prefixTemplate: string | null;
   suffixTemplate: string | null;

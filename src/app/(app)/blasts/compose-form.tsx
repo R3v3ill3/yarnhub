@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { INSERT_VARIABLES } from "@/lib/comms/template-variables";
 import { countSegmentsWorstCase } from "@/lib/sms/segments";
 import { filterInboxSafeSenders } from "@/lib/sms/sender-purpose";
+import { SmsEmojiField } from "@/components/sms-emoji-field";
 import { queueBlast } from "./actions";
 import { toDisplay } from "@/lib/phone/normalise-phone";
 
@@ -47,6 +48,7 @@ export function BlastComposeForm(props: {
     setPending(true);
     setError(null);
     if (warning) formData.set("confirmWarning", "1");
+    formData.set("body", body);
     const result = await queueBlast(formData);
     setPending(false);
     if (result.warning) {
@@ -174,6 +176,7 @@ export function BlastComposeForm(props: {
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />
+            <SmsEmojiField body={body} onInsert={(emoji) => insertToken(emoji)} />
           </div>
           <label className="flex items-start gap-2 text-sm">
             <input
@@ -197,9 +200,20 @@ export function BlastComposeForm(props: {
               />
             </div>
           ) : null}
-          <Button type="submit" disabled={pending || !senders.length}>
-            {pending ? "Queueing…" : warning ? "Queue anyway" : "Queue blast"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" name="save_as" value="queue" disabled={pending || !senders.length}>
+              {pending ? "Saving…" : warning ? "Queue anyway" : "Queue blast"}
+            </Button>
+            <Button
+              type="submit"
+              name="save_as"
+              value="draft"
+              variant="outline"
+              disabled={pending || !senders.length}
+            >
+              Save draft
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

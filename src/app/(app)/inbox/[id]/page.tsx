@@ -4,9 +4,11 @@ import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { emailsForUserIds } from "@/lib/auth/user-emails";
 import { isMockSmsProvider } from "@/lib/sms/provider";
 import { SimulateReplyForm } from "../simulate-reply-form";
+import { foldTapbackMessages, TAPBACK_KIND_LABEL } from "@/lib/sms/tapback";
 import { ReplyForm } from "../reply-form";
 import { ContactPane } from "../contact-pane";
 import { ThreadLive } from "../thread-live";
+import { ThreadExtras } from "../thread-extras";
 
 export default async function ThreadPage({
   params,
@@ -18,7 +20,7 @@ export default async function ThreadPage({
   const { data: thread } = await supabase
     .from("sms_conversations")
     .select(
-      "id, phone_e164, unread_count, contact_id, claimed_by, claimed_at, sms_numbers ( phone_e164, label ), contacts ( id, first_name, last_name, sms_opt_out, notes )",
+      "id, phone_e164, unread_count, state, contact_id, claimed_by, claimed_at, sms_numbers ( phone_e164, label ), contacts ( id, first_name, last_name, sms_opt_out, notes )",
     )
     .eq("id", id)
     .eq("organisation_id", org.id)
@@ -34,12 +36,21 @@ export default async function ThreadPage({
       .eq("organisation_id", org.id);
   }
 
-  const { data: messages } = await supabase
-    .from("sms_messages")
-    .select("id, direction, body, created_at, status")
-    .eq("conversation_id", id)
-    .eq("organisation_id", org.id)
-    .order("created_at", { ascending: true });
+  const [{ data: messages }, { data: notes }] = await Promise.all([
+    supabase
+      .from("sms_messages")
+      .select("id, direction, body, created_at, status, provider_message_id")
+      .eq("conversation_id", id)
+      .eq("organisation_id", org.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("sms_conversation_notes")
+      .select("id, body, created_at")
+      .eq("conversation_id", id)
+      .eq("organisation_id", org.id)
+      .order("created_at", { ascending: true }),
+  ]);
+  const visibleMessages = foldTapbackMessages(messages ?? []);
 
   const contact = thread.contacts as
     | {
@@ -79,7 +90,16 @@ export default async function ThreadPage({
               ← Inbox
             </Link>
           </li>
-          {(messages ?? []).map((message) => (
+          {(notes ?? []).map((note) => (
+            <li
+              key={note.id}
+              className="mx-auto max-w-xl rounded-xl border border-dashed border-border bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide">Staff note</p>
+              <p className="whitespace-pre-wrap">{note.body}</p>
+            </li>
+          ))}
+          {visibleMessages.map((message) => (
             <li
               key={message.id}
               className={`max-w-xl rounded-xl px-4 py-3 text-sm ${
@@ -89,6 +109,13 @@ export default async function ThreadPage({
               }`}
             >
               <p className="whitespace-pre-wrap">{message.body}</p>
+              {message.reactions?.length ? (
+                <p className="mt-2 text-xs">
+                  {message.reactions
+                    .map((reaction) => `${reaction.emoji} ${TAPBACK_KIND_LABEL[reaction.kind]}`)
+                    .join(" · ")}
+                </p>
+              ) : null}
               <p
                 className={`mt-1 text-xs ${
                   message.direction === "outbound"
@@ -105,6 +132,10 @@ export default async function ThreadPage({
             <li className="text-sm text-muted-foreground">No messages yet.</li>
           ) : null}
         </ol>
+        <ThreadExtras
+          conversationId={id}
+          closed={thread.state === "closed"}
+        />
         <ReplyForm
           conversationId={id}
           optedOut={Boolean(person?.sms_opt_out)}

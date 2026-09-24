@@ -4,7 +4,10 @@ import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { AppPage } from "@/components/app-page";
 import { Badge } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toDisplay } from "@/lib/phone/normalise-phone";
+import { surveyAnswersToWideCsv } from "@/lib/sms/survey-export";
 import { SurveyLaunchForm } from "../survey-launch-form";
+import { SurveyOps } from "../survey-ops";
 
 export default async function SurveyDetailPage({
   params,
@@ -25,7 +28,7 @@ export default async function SurveyDetailPage({
     await Promise.all([
       supabase
         .from("sms_survey_questions")
-        .select("id, sort_order, prompt, qtype")
+        .select("id, sort_order, prompt, qtype, branching")
         .eq("survey_id", id)
         .order("sort_order", { ascending: true }),
       supabase
@@ -37,8 +40,28 @@ export default async function SurveyDetailPage({
         .select("id, name")
         .eq("organisation_id", org.id)
         .order("created_at", { ascending: false }),
-      supabase.from("sms_survey_sessions").select("id, state").eq("survey_id", id),
+      supabase
+        .from("sms_survey_sessions")
+        .select("id, state, phone_e164, contacts ( first_name, last_name )")
+        .eq("survey_id", id),
     ]);
+  const sessionIds = (sessions ?? []).map((session) => session.id as string);
+  const { data: answers } = sessionIds.length
+    ? await supabase
+        .from("sms_survey_answers")
+        .select("session_id, question_id, parsed_value, raw_body")
+        .eq("organisation_id", org.id)
+        .in("session_id", sessionIds)
+    : { data: [] };
+  const answersBySession = new Map<string, Record<string, { parsed_value: string | null; raw_body: string | null }>>();
+  for (const answer of answers ?? []) {
+    const bucket = answersBySession.get(answer.session_id) ?? {};
+    bucket[answer.question_id] = {
+      parsed_value: answer.parsed_value,
+      raw_body: answer.raw_body,
+    };
+    answersBySession.set(answer.session_id, bucket);
+  }
 
   const counts = (sessions ?? []).reduce<Record<string, number>>((acc, row) => {
     acc[row.state] = (acc[row.state] ?? 0) + 1;
@@ -55,6 +78,7 @@ export default async function SurveyDetailPage({
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight">{survey.title}</h1>
             <Badge variant="secondary">{survey.status}</Badge>
+            {survey.is_test ? <Badge>Test</Badge> : null}
           </div>
         </div>
         <Card>
@@ -66,7 +90,10 @@ export default async function SurveyDetailPage({
               {(questions ?? []).map((q) => (
                 <li key={q.id}>
                   <span className="font-medium">{q.prompt}</span>{" "}
-                  <span className="text-muted-foreground">({q.qtype})</span>
+                  <span className="text-muted-foreground">
+                    ({q.qtype}
+                    {q.branching ? ", branched" : ""})
+                  </span>
                 </li>
               ))}
             </ol>
@@ -83,12 +110,90 @@ export default async function SurveyDetailPage({
                 .map(([state, n]) => `${state} ${n}`)
                 .join(" · ") || "none yet"}
             </p>
+            {survey.is_test ? (
+              <p className="text-sm">
+                Test mode is on. Launch ignores the audience picker and texts the test roster only.
+              </p>
+            ) : null}
             <SurveyLaunchForm
               surveyId={survey.id}
               status={survey.status}
               numbers={numbers ?? []}
               lists={lists ?? []}
             />
+            <SurveyOps
+              surveyId={survey.id}
+              status={survey.status}
+              csv={surveyAnswersToWideCsv({
+                questions: (questions ?? []).map((question) => ({
+                  id: question.id,
+                  prompt: question.prompt,
+                  sort_order: question.sort_order,
+                })),
+                respondents: (sessions ?? []).map((session) => {
+                  const contact = session.contacts as
+                    | { first_name: string | null; last_name: string | null }
+                    | { first_name: string | null; last_name: string | null }[]
+                    | null;
+                  const person = Array.isArray(contact) ? contact[0] : contact;
+                  return {
+                    name: [person?.first_name, person?.last_name].filter(Boolean).join(" "),
+                    phone: session.phone_e164,
+                    state: session.state,
+                    answers: answersBySession.get(session.id) ?? {},
+                  };
+                }),
+              })}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Answers</CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-3 font-medium">Person</th>
+                  <th className="py-2 pr-3 font-medium">State</th>
+                  {(questions ?? []).map((question) => (
+                    <th key={question.id} className="py-2 pr-3 font-medium">
+                      {question.prompt}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(sessions ?? []).map((session) => {
+                  const contact = session.contacts as
+                    | { first_name: string | null; last_name: string | null }
+                    | { first_name: string | null; last_name: string | null }[]
+                    | null;
+                  const person = Array.isArray(contact) ? contact[0] : contact;
+                  const name = [person?.first_name, person?.last_name].filter(Boolean).join(" ");
+                  const byQuestion = answersBySession.get(session.id) ?? {};
+                  return (
+                    <tr key={session.id} className="border-t border-border">
+                      <td className="py-2 pr-3">
+                        {name || toDisplay(session.phone_e164)}
+                      </td>
+                      <td className="py-2 pr-3">{session.state}</td>
+                      {(questions ?? []).map((question) => (
+                        <td key={question.id} className="py-2 pr-3">
+                          {byQuestion[question.id]?.raw_body ||
+                            byQuestion[question.id]?.parsed_value ||
+                            "—"}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!sessions?.length ? (
+              <p className="text-sm text-muted-foreground">No sessions yet.</p>
+            ) : null}
           </CardContent>
         </Card>
       </div>

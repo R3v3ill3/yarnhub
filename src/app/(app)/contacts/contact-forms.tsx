@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CONSENT_ATTESTATION } from "@/lib/sms/contact-lists";
 import { addContact, importContactsCsv, snapshotContactList } from "./actions";
 
 export function ContactForms({
@@ -42,7 +43,10 @@ export function ContactForms({
       setCsvMessage(result.error);
       return;
     }
-    setCsvMessage(`Imported ${result.imported ?? 0}, skipped ${result.skipped ?? 0}.`);
+    const reasons = result.rejects?.length ? ` ${result.rejects.join(" ")}` : "";
+    setCsvMessage(
+      `Imported ${result.imported ?? 0}, skipped ${result.skipped ?? 0}.${reasons}`,
+    );
     router.refresh();
   }
 
@@ -64,7 +68,7 @@ export function ContactForms({
       <Card>
         <CardHeader>
           <CardTitle>Add a contact</CardTitle>
-          <CardDescription>Matched on E.164 only — no worker wash.</CardDescription>
+          <CardDescription>First and last name, and a record that they consented.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={onAdd} className="space-y-3">
@@ -72,17 +76,21 @@ export function ContactForms({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="first_name">First name</Label>
-                <Input id="first_name" name="first_name" />
+                <Input id="first_name" name="first_name" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="last_name">Last name</Label>
-                <Input id="last_name" name="last_name" />
+                <Input id="last_name" name="last_name" required />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Mobile</Label>
               <Input id="phone" name="phone" required placeholder="0412 345 678" />
             </div>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="consent" className="mt-1" required />
+              <span>{CONSENT_ATTESTATION}</span>
+            </label>
             <Button type="submit" disabled={pending === "add"}>
               {pending === "add" ? "Saving…" : "Add contact"}
             </Button>
@@ -93,7 +101,8 @@ export function ContactForms({
         <CardHeader>
           <CardTitle>CSV import</CardTitle>
           <CardDescription>
-            Header row with phone / first_name / last_name, or a single phone column.
+            CSV or Excel. Header row with first name, last name, and mobile. Rows
+            missing a name or a valid mobile are listed and not imported.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,6 +113,14 @@ export function ContactForms({
               rows={8}
               placeholder={"first_name,last_name,phone\nAlex,Mitchell,0412345678"}
             />
+            <div className="space-y-2">
+              <Label htmlFor="file">Or upload a file</Label>
+              <Input id="file" name="file" type="file" accept=".csv,.txt,.xlsx,.xls" />
+            </div>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="consent" className="mt-1" required />
+              <span>{CONSENT_ATTESTATION}</span>
+            </label>
             <Button type="submit" variant="secondary" disabled={pending === "csv"}>
               {pending === "csv" ? "Importing…" : "Import CSV"}
             </Button>

@@ -4,6 +4,7 @@ import { requireOrgMember } from "@/lib/auth/require-org-member";
 import { AppPage } from "@/components/app-page";
 import { Badge } from "@/components/ui/alert";
 import { toDisplay } from "@/lib/phone/normalise-phone";
+import { BlastOps } from "../blast-ops";
 
 export default async function BlastDetailPage({
   params,
@@ -12,28 +13,28 @@ export default async function BlastDetailPage({
 }) {
   const { id } = await params;
   const { supabase, org } = await requireOrgMember();
-  const { data: blast } = await supabase
-    .from("sms_blasts")
-    .select(
-      "id, name, body, status, timezone, blackout_override, blackout_override_reason, created_at, queued_at, completed_at, sms_numbers ( phone_e164, label )",
-    )
-    .eq("id", id)
-    .eq("organisation_id", org.id)
-    .maybeSingle();
+  const [{ data: blast }, { data: items }, { data: logs }] = await Promise.all([
+    supabase
+      .from("sms_blasts")
+      .select(
+        "id, name, body, status, timezone, blackout_override, blackout_override_reason, created_at, queued_at, completed_at, sms_numbers ( phone_e164, label )",
+      )
+      .eq("id", id)
+      .eq("organisation_id", org.id)
+      .maybeSingle(),
+    supabase
+      .from("sms_blast_items")
+      .select("id, contact_id, status, phone_e164, failure_reason, sent_at")
+      .eq("blast_id", id)
+      .eq("organisation_id", org.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("sms_send_log")
+      .select("blast_item_id, status")
+      .eq("blast_id", id)
+      .eq("organisation_id", org.id),
+  ]);
   if (!blast) notFound();
-
-  const { data: items } = await supabase
-    .from("sms_blast_items")
-    .select("id, status, phone_e164, failure_reason, sent_at")
-    .eq("blast_id", id)
-    .eq("organisation_id", org.id)
-    .order("sort_order", { ascending: true });
-
-  const { data: logs } = await supabase
-    .from("sms_send_log")
-    .select("blast_item_id, status")
-    .eq("blast_id", id)
-    .eq("organisation_id", org.id);
 
   const deliveryByItem = new Map(
     (logs ?? []).map((row) => [row.blast_item_id as string | null, row.status as string]),
@@ -72,6 +73,18 @@ export default async function BlastDetailPage({
         <pre className="whitespace-pre-wrap rounded-xl border border-border bg-secondary/30 p-4 text-sm">
           {blast.body}
         </pre>
+        <BlastOps
+          blastId={blast.id}
+          status={blast.status}
+          csv={[
+            "phone,status,detail",
+            ...(items ?? []).map((item) => {
+              const delivery = deliveryByItem.get(item.id) ?? item.status;
+              const detail = item.failure_reason || item.sent_at || "";
+              return `${item.phone_e164},${delivery},${String(detail).replaceAll(",", " ")}`;
+            }),
+          ].join("\n")}
+        />
         <div className="flex flex-wrap gap-2 text-sm">
           {Object.entries(counts).map(([status, n]) => (
             <Badge key={status} variant="secondary">
