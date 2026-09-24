@@ -151,5 +151,6 @@ export async function snapshotContactList(formData: FormData): Promise<{
   if (memberError) return { error: memberError.message };
   revalidatePath("/contacts");
   revalidatePath("/blasts/new");
+  revalidatePath("/sms/new");
   return {};
 }

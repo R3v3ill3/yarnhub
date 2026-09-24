@@ -22,7 +22,7 @@ export default async function BlastsPage() {
           description="Queue a bulk SMS. Cron drains every 5 minutes during the send window."
           actions={
             <Button asChild>
-              <Link href="/blasts/new">New blast</Link>
+              <Link href="/sms/new?kind=blast">New blast</Link>
             </Button>
           }
         />

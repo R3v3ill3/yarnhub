@@ -30,7 +30,7 @@ export default async function RelaysPage() {
           description="Members text a dedicated number; messages forward to a target with attribution. Replies come back through the same number — no CLI spoofing."
           actions={
             <Button asChild>
-              <Link href="/relays/new">New relay</Link>
+              <Link href="/sms/new?kind=relay">New relay</Link>
             </Button>
           }
         />
